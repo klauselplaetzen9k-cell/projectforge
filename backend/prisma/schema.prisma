@@ -1,5 +1,10 @@
-// This is your Prisma schema file
-// Learn more at: https://pris.ly/d/prisma-schema
+// ============================================================================
+// ProjectForge Database Schema
+// Version: 1.0
+// ============================================================================
+// This schema defines all entities for the ProjectForge project management
+// tool. Prisma generates the TypeScript client from this file.
+// ============================================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -10,21 +15,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
+// ============================================================================
 // USER & AUTHENTICATION
-// ============================================
+// ============================================================================
+// Users can authenticate via local database or external OIDC/LDAP providers.
 
 model User {
+  /// Unique user identifier (CUID for distributed systems)
   id            String    @id @default(cuid())
+  /// User email (unique, used for authentication)
   email         String    @unique
+  /// Hashed password (null if user authenticates via OIDC/LDAP)
   passwordHash  String?
+  /// User's first name
   firstName     String
+  /// User's last name
   lastName      String
+  /// URL to user avatar image
   avatarUrl     String?
+  /// System role for permission management
   role          UserRole  @default(MEMBER)
+  /// Account active status (deactivated users cannot login)
   isActive      Boolean   @default(true)
+  /// Timestamp of last successful login
   lastLoginAt   DateTime?
+  /// Creation timestamp
   createdAt     DateTime  @default(now())
+  /// Last update timestamp
   updatedAt     DateTime  @updatedAt
 
   // Relations
@@ -38,20 +55,33 @@ model User {
   notifications      Notification[]
 }
 
+/// System roles for user permissions
 enum UserRole {
+  /// Full system access
   ADMIN
+  /// Can manage teams and projects
   MANAGER
+  /// Regular team member
   MEMBER
+  /// Read-only access
   VIEWER
 }
 
+/// Active user sessions for JWT token management
 model UserSession {
+  /// Unique session identifier
   id           String   @id @default(cuid())
+  /// Reference to user
   userId       String
+  /// JWT refresh token
   token        String   @unique
+  /// Session expiration timestamp
   expiresAt    DateTime
+  /// Client IP address for security
   ipAddress    String?
+  /// Client user agent for security
   userAgent    String?
+  /// Creation timestamp
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -60,19 +90,29 @@ model UserSession {
   @@index([token])
 }
 
-// ============================================
+// ============================================================================
 // TEAM MANAGEMENT
-// ============================================
+// ============================================================================
+// Teams organize users and own projects. Users can belong to multiple teams.
 
 model Team {
+  /// Unique team identifier
   id          String   @id @default(cuid())
+  /// Team display name
   name        String
+  /// Team description
   description String?
+  /// URL-friendly slug for API endpoints
   slug        String   @unique
+  /// Team avatar image URL
   avatarUrl   String?
+  /// Team owner (creator)
   ownerId     String
+  /// Team active status
   isActive    Boolean  @default(true)
+  /// Creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
   // Relations
@@ -83,11 +123,17 @@ model Team {
   @@index([slug])
 }
 
+/// Team membership with role-based access
 model TeamMember {
+  /// Unique membership identifier
   id        String         @id @default(cuid())
+  /// Reference to team
   teamId    String
+  /// Reference to user
   userId    String
+  /// Member role within the team
   role      TeamMemberRole @default(MEMBER)
+  /// When user joined the team
   joinedAt  DateTime       @default(now())
 
   // Relations
@@ -99,29 +145,47 @@ model TeamMember {
   @@index([userId])
 }
 
+/// Roles for team membership
 enum TeamMemberRole {
+  /// Full control over team
   OWNER
+  /// Can manage members and settings
   ADMIN
+  /// Regular team member
   MEMBER
+  /// View-only access
   VIEWER
 }
 
-// ============================================
+// ============================================================================
 // PROJECT MANAGEMENT
-// ============================================
+// ============================================================================
+// Projects belong to teams and contain work packages, tasks, and milestones.
 
 model Project {
+  /// Unique project identifier
   id           String         @id @default(cuid())
+  /// Project display name
   name         String
+  /// Project description
   description  String?
+  /// URL-friendly slug (unique within team)
   slug         String
-  key          String         // e.g., "PRJ" for PRJ-1 task IDs
+  /// Project key for task IDs (e.g., "PRJ" for PRJ-1)
+  key          String
+  /// Project color for UI (hex format)
   color        String         @default("#6366f1")
+  /// Project lifecycle status
   status       ProjectStatus  @default(ACTIVE)
+  /// Project start date
   startDate    DateTime?
+  /// Project end/target date
   endDate      DateTime?
+  /// Reference to owning team
   teamId       String
+  /// Creation timestamp
   createdAt    DateTime       @default(now())
+  /// Last update timestamp
   updatedAt    DateTime       @updatedAt
 
   // Relations
@@ -136,18 +200,29 @@ model Project {
   @@index([slug])
 }
 
+/// Project lifecycle statuses
 enum ProjectStatus {
+  /// Active and ongoing
   ACTIVE
+  /// Temporarily paused
   ON_HOLD
+  /// Completed successfully
   COMPLETED
+  /// Archived (read-only)
   ARCHIVED
 }
 
+/// Project membership with role-based access
 model ProjectMember {
+  /// Unique membership identifier
   id        String            @id @default(cuid())
+  /// Reference to project
   projectId String
+  /// Reference to user
   userId    String
+  /// Member role within the project
   role      ProjectMemberRole @default(MEMBER)
+  /// When user joined the project
   joinedAt  DateTime          @default(now())
 
   // Relations
@@ -159,29 +234,47 @@ model ProjectMember {
   @@index([userId])
 }
 
+/// Roles for project membership
 enum ProjectMemberRole {
+  /// Full project control
   OWNER
+  /// Can manage tasks and members
   MANAGER
+  /// Regular contributor
   MEMBER
+  /// View-only access
   VIEWER
 }
 
-// ============================================
+// ============================================================================
 // WORK PACKAGES
-// ============================================
+// ============================================================================
+// Work packages organize tasks hierarchically (e.g., Epic → Story → Task).
 
 model WorkPackage {
+  /// Unique work package identifier
   id          String   @id @default(cuid())
+  /// Work package display name
   name        String
+  /// Detailed description
   description String?
+  /// Reference to parent project
   projectId   String
+  /// Parent work package (for nesting)
   parentId    String?
+  /// Current status
   status      WorkPackageStatus @default(TODO)
+  /// Priority level
   priority    Priority @default(MEDIUM)
+  /// Sort order for manual ordering
   sortOrder   Int      @default(0)
+  /// Work package start date
   startDate   DateTime?
+  /// Work package due date
   dueDate     DateTime?
+  /// Creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
   // Relations
@@ -195,35 +288,57 @@ model WorkPackage {
   @@index([parentId])
 }
 
+/// Work package lifecycle statuses
 enum WorkPackageStatus {
+  /// Not started
   TODO
+  /// Currently being worked on
   IN_PROGRESS
+  /// Under review
   REVIEW
+  /// Completed
   DONE
+  /// Archived
   ARCHIVED
 }
 
+/// Priority levels for tasks and work packages
 enum Priority {
+  /// Low priority
   LOW
+  /// Normal priority (default)
   MEDIUM
+  /// High priority
   HIGH
+  /// Urgent/critical priority
   URGENT
 }
 
-// ============================================
+// ============================================================================
 // MILESTONES
-// ============================================
+// ============================================================================
+// Milestones track important project deadlines and deliverables.
 
 model Milestone {
+  /// Unique milestone identifier
   id           String   @id @default(cuid())
+  /// Milestone display name
   name         String
+  /// Milestone description
   description  String?
+  /// Reference to parent project
   projectId    String
+  /// Optional link to work package
   workPackageId String?
+  /// Target completion date
   dueDate      DateTime
+  /// Whether milestone is completed
   completed    Boolean  @default(false)
+  /// When milestone was completed
   completedAt  DateTime?
+  /// Creation timestamp
   createdAt    DateTime @default(now())
+  /// Last update timestamp
   updatedAt    DateTime @updatedAt
 
   // Relations
@@ -235,28 +350,47 @@ model Milestone {
   @@index([workPackageId])
 }
 
-// ============================================
+// ============================================================================
 // TASKS
-// ============================================
+// ============================================================================
+// Tasks are the smallest unit of work, assigned to team members.
 
 model Task {
+  /// Unique task identifier
   id            String     @id @default(cuid())
+  /// Task title/summary
   title         String
+  /// Detailed task description (Markdown support)
   description   String?
+  /// Reference to parent project
   projectId     String
+  /// Reference to parent work package
   workPackageId String?
+  /// Reference to milestone
   milestoneId   String?
+  /// Current task status
   status        TaskStatus @default(TODO)
+  /// Task priority
   priority      Priority   @default(MEDIUM)
+  /// Assigned team member
   assigneeId    String?
+  /// Task creator
   creatorId     String
+  /// Sort order for manual ordering
   sortOrder     Int        @default(0)
+  /// Estimated hours to complete
   estimatedHours Float?
+  /// Total hours logged
   loggedHours   Float      @default(0)
+  /// Task start date
   startDate     DateTime?
+  /// Task due date
   dueDate       DateTime?
+  /// When task was completed
   completedAt   DateTime?
+  /// Creation timestamp
   createdAt    DateTime   @default(now())
+  /// Last update timestamp
   updatedAt    DateTime   @updatedAt
 
   // Relations
@@ -277,17 +411,27 @@ model Task {
   @@index([assigneeId])
 }
 
+/// Task lifecycle statuses
 enum TaskStatus {
+  /// Not started
   TODO
+  /// Currently in progress
   IN_PROGRESS
+  /// Waiting for review
   IN_REVIEW
+  /// Completed
   DONE
+  /// Cancelled/void
   CANCELLED
 }
 
+/// Task dependencies (blockers, prerequisites)
 model TaskDependency {
+  /// Unique dependency identifier
   id             String  @id @default(cuid())
+  /// Dependent task (blocked task)
   taskId         String
+  /// Task being depended on (blocker)
   dependsOnTaskId String
 
   // Relations
@@ -299,16 +443,23 @@ model TaskDependency {
   @@index([dependsOnTaskId])
 }
 
-// ============================================
+// ============================================================================
 // COMMENTS & ATTACHMENTS
-// ============================================
+// ============================================================================
+// Task collaboration features for communication and file sharing.
 
 model Comment {
+  /// Unique comment identifier
   id        String   @id @default(cuid())
+  /// Comment content (Markdown support)
   content   String
+  /// Reference to parent task
   taskId    String
+  /// Comment author
   userId    String
+  /// Creation timestamp
   createdAt DateTime @default(now())
+  /// Last update timestamp
   updatedAt DateTime @updatedAt
 
   // Relations
@@ -319,13 +470,21 @@ model Comment {
   @@index([userId])
 }
 
+/// File attachments for tasks
 model Attachment {
+  /// Unique attachment identifier
   id        String   @id @default(cuid())
+  /// Original filename
   name      String
+  /// File URL (local path or S3 URL)
   url       String
+  /// MIME type (e.g., "image/png")
   mimeType  String
+  /// File size in bytes
   size      Int
+  /// Reference to parent task
   taskId    String
+  /// Creation timestamp
   createdAt DateTime @default(now())
 
   // Relations
@@ -334,19 +493,29 @@ model Attachment {
   @@index([taskId])
 }
 
-// ============================================
+// ============================================================================
 // ACTIVITY & NOTIFICATIONS
-// ============================================
+// ============================================================================
+// Activity tracking and user notifications for collaboration.
 
 model Activity {
+  /// Unique activity identifier
   id        String       @id @default(cuid())
+  /// Type of action performed
   action    ActivityType
+  /// Entity type being acted upon (project, task, etc.)
   entityType String
+  /// Entity identifier
   entityId  String
+  /// User who performed the action
   userId    String?
+  /// Reference to project (if applicable)
   projectId String?
+  /// Reference to task (if applicable)
   taskId    String?
+  /// Additional activity metadata
   metadata  Json?
+  /// When the activity occurred
   createdAt DateTime     @default(now())
 
   // Relations
@@ -359,6 +528,7 @@ model Activity {
   @@index([createdAt])
 }
 
+/// Types of activities that are tracked
 enum ActivityType {
   PROJECT_CREATED
   PROJECT_UPDATED
@@ -373,13 +543,21 @@ enum ActivityType {
   MILESTONE_COMPLETED
 }
 
+/// User notifications for in-app alerts
 model Notification {
+  /// Unique notification identifier
   id        String   @id @default(cuid())
+  /// Target user
   userId    String
+  /// Notification title
   title     String
+  /// Notification message
   message   String
+  /// Link to related content
   link      String?
+  /// Whether notification has been read
   isRead    Boolean  @default(false)
+  /// Creation timestamp
   createdAt DateTime @default(now())
 
   // Relations
@@ -390,43 +568,69 @@ model Notification {
   @@index([createdAt])
 }
 
-// ============================================
+// ============================================================================
 // TIMELINES
-// ============================================
+// ============================================================================
+// Timeline data for Gantt chart visualization.
 
 model Timeline {
+  /// Unique timeline identifier
   id          String   @id @default(cuid())
+  /// Timeline display name
   name        String
+  /// Reference to parent project
   projectId   String
+  /// Timeline start date
   startDate   DateTime
+  /// Timeline end date
   endDate     DateTime
+  /// Whether this is the default timeline
   isDefault   Boolean  @default(false)
+  /// Creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
   @@index([projectId])
 }
 
+/// Events on a timeline (milestones, deadlines, meetings)
 model TimelineEvent {
+  /// Unique event identifier
   id          String   @id @default(cuid())
+  /// Reference to parent timeline
   timelineId  String
+  /// Event title
   title       String
+  /// Event description
   description String?
+  /// Type of timeline event
   eventType   TimelineEventType
+  /// Event start date/time
   startDate   DateTime
+  /// Event end date/time (optional for single-day events)
   endDate     DateTime?
+  /// Custom color for the event
   color       String?
+  /// Creation timestamp
   createdAt   DateTime @default(now())
 
   @@index([timelineId])
   @@index([startDate])
 }
 
+/// Types of timeline events
 enum TimelineEventType {
+  /// Project milestone
   MILESTONE
+  /// Important deadline
   DEADLINE
+  /// Review session
   REVIEW
+  /// Team meeting
   MEETING
+  /// Release/deployment
   RELEASE
+  /// Custom event type
   CUSTOM
 }
