@@ -307,4 +307,142 @@ router.post('/:id/log-time', authenticate, asyncHandler(async (req: Authenticate
   res.json({ task, loggedHours: task.loggedHours });
 }));
 
+// ============================================================================
+// Task Dependencies
+// ============================================================================
+
+// Get task dependencies
+router.get('/:id/dependencies', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const task = await prisma.task.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        members: { some: { userId: req.user!.userId } },
+      },
+    },
+    include: {
+      dependencies: {
+        include: {
+          dependsOnTask: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              assignee: { select: { id: true, firstName: true, lastName: true } },
+            },
+          },
+        },
+      },
+      dependents: {
+        include: {
+          task: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              assignee: { select: { id: true, firstName: true, lastName: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new AppError('Task not found', 404);
+  }
+
+  res.json({
+    blocks: task.dependencies, // Tasks this task is blocked by
+    blockedBy: task.dependents, // Tasks blocked by this task
+  });
+}));
+
+// Add dependency (this task depends on another task)
+router.post('/:id/dependencies', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+  const schema = z.object({
+    dependsOnTaskId: z.string(),
+  });
+
+  const data = schema.parse(req.body);
+
+  // Check if task exists
+  const task = await prisma.task.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        members: { some: { userId: req.user!.userId } },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new AppError('Task not found', 404);
+  }
+
+  // Check if dependency task exists in same project
+  const dependencyTask = await prisma.task.findFirst({
+    where: {
+      id: data.dependsOnTaskId,
+      projectId: task.projectId,
+    },
+  });
+
+  if (!dependencyTask) {
+    throw new AppError('Dependency task not found or not in same project', 404);
+  }
+
+  // Check for circular dependency
+  const existingDependencies = await prisma.taskDependency.findMany({
+    where: { taskId: data.dependsOnTaskId },
+  });
+
+  const dependencyIds = existingDependencies.map(d => d.dependsOnTaskId);
+  if (dependencyIds.includes(req.params.id)) {
+    throw new AppError('Cannot create circular dependency', 400);
+  }
+
+  // Check if dependency already exists
+  const existing = await prisma.taskDependency.findUnique({
+    where: {
+      taskId_dependsOnTaskId: {
+        taskId: req.params.id,
+        dependsOnTaskId: data.dependsOnTaskId,
+      },
+    },
+  });
+
+  if (existing) {
+    throw new AppError('Dependency already exists', 409);
+  }
+
+  const dependency = await prisma.taskDependency.create({
+    data: {
+      taskId: req.params.id,
+      dependsOnTaskId: data.dependsOnTaskId,
+    },
+    include: {
+      dependsOnTask: {
+        select: { id: true, title: true, status: true },
+      },
+    },
+  });
+
+  res.status(201).json({ dependency });
+}));
+
+// Remove dependency
+router.delete('/:id/dependencies/:dependsOnTaskId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+  await prisma.taskDependency.delete({
+    where: {
+      taskId_dependsOnTaskId: {
+        taskId: req.params.id,
+        dependsOnTaskId: req.params.dependsOnTaskId,
+      },
+    },
+  });
+
+  res.json({ message: 'Dependency removed successfully' });
+}));
+
 export default router;
