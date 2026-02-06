@@ -57,8 +57,107 @@ projectforge/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── Dockerfile
+├── docker/
+│   ├── init-scripts/         # Database initialization scripts
+│   └── postgres/             # PostgreSQL config
 ├── docker-compose.yml         # Docker orchestration
 └── README.md                  # This file
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 20+
+- Git
+
+### Quick Start (with Docker)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/klauselplaetzen9k-cell/projectforge.git
+cd projectforge
+
+# 2. Start PostgreSQL
+docker-compose up -d postgres
+
+# 3. Copy environment file
+cp backend/.env.example backend/.env
+
+# 4. Install backend dependencies
+cd backend
+npm install
+
+# 5. Generate Prisma client
+npx prisma generate
+
+# 6. Run database migrations
+npx prisma migrate dev
+
+# 7. Seed the database (optional)
+npm run seed
+
+# 8. Start backend development server
+npm run dev
+
+# In another terminal, set up frontend:
+cd frontend
+npm install
+npm run dev
+```
+
+### Access the Application
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:3000
+- **API Health Check:** http://localhost:3000/health
+
+### Default Login Credentials
+After running the seed script:
+- **Admin:** admin@projectforge.io / admin123
+- **Demo:** demo@projectforge.io / demo1234
+
+---
+
+## Docker Commands
+
+```bash
+# Start all services (development)
+docker-compose up -d
+
+# Start with frontend (requires uncommenting in docker-compose.yml)
+docker-compose --profile full up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (WARNING: deletes all data)
+docker-compose down -v
+
+# Restart PostgreSQL only
+docker-compose restart postgres
+```
+
+---
+
+## Database Commands
+
+```bash
+# Run Prisma Studio (GUI for database)
+cd backend && npx prisma studio
+
+# Create a new migration
+npx prisma migrate dev --name "migration_name"
+
+# Reset database (WARNING: deletes all data)
+npx prisma migrate reset
+
+# Generate Prisma client after schema changes
+npx prisma generate
 ```
 
 ---
@@ -78,24 +177,21 @@ projectforge/
 
 ---
 
-## Next Steps
+## GitHub Issues
 
-1. Review and approve the tech stack
-2. Finalize database schema
-3. Set up development environment
-4. Implement authentication
-5. Build core features step by step
+This project uses GitHub Issues for task tracking:
+https://github.com/klauselplaetzen9k-cell/projectforge/issues
 
 ---
 
 ## Commands
 
 ```bash
-# Start development
+# Development
 docker-compose up -d postgres
-cd backend && npm install && npm run dev
-cd frontend && npm install && npm run dev
+cd backend && npm run dev
+cd frontend && npm run dev
 
-# Production build
+# Production
 docker-compose up -d
 ```
