@@ -4,6 +4,7 @@
 
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth.context';
+import NotificationBell from './notifications/NotificationBell';
 
 // ============================================================================
 // Navigation Items
@@ -78,6 +79,7 @@ export default function Layout() {
                 <span className="user-name">{user.firstName} {user.lastName}</span>
                 <span className="user-email">{user.email}</span>
               </div>
+              <NotificationBell />
               <button onClick={handleLogout} className="logout-button" title="Logout">
                 <LogoutIcon />
               </button>
