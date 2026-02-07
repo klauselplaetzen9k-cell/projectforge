@@ -3757,3 +3757,189 @@ select {
 .action-card:hover {
   transform: translateY(-2px);
 }
+
+/* ============================================================================
+   Dark Mode Specific Enhancements
+   ============================================================================ */
+
+/* Gantt Chart Dark Mode */
+[data-theme="dark"] .gantt-timeline-header {
+  background: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] .gantt-sidebar-header {
+  background: var(--color-bg-secondary);
+}
+
+[data-theme="dark"] .gantt-date-header.weekend {
+  background: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] .gantt-timeline-row {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-bg-secondary),
+    var(--color-bg-secondary) calc(100% / 7 - 1px),
+    var(--color-border-light) calc(100% / 7 - 1px),
+    var(--color-border-light) calc(100% / 7)
+  );
+}
+
+/* Kanban Board Dark Mode */
+[data-theme="dark"] .kanban-column {
+  background: var(--color-bg-secondary);
+}
+
+[data-theme="dark"] .kanban-card {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .kanban-card:hover {
+  background: var(--color-bg-secondary);
+}
+
+/* Form Elements Dark Mode */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Modal Dark Mode */
+[data-theme="dark"] .modal {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .modal-header {
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .modal-footer {
+  border-color: var(--color-border);
+}
+
+/* Dropdown Dark Mode */
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .nav-dropdown,
+[data-theme="dark"] .notification-dropdown {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .nav-dropdown-item:hover {
+  background: var(--color-bg-tertiary);
+}
+
+/* Table Dark Mode */
+[data-theme="dark"] .data-table {
+  background: var(--color-bg-primary);
+}
+
+[data-theme="dark"] .data-table th {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .data-table td {
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .data-table tr:hover td {
+  background: var(--color-bg-secondary);
+}
+
+/* Empty State Dark Mode */
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .empty-projects,
+[data-theme="dark"] .empty-milestones,
+[data-theme="dark"] .no-activity {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+/* Loading State Dark Mode */
+[data-theme="dark"] .loading {
+  color: var(--color-text-secondary);
+}
+
+/* Code/Pre Dark Mode */
+[data-theme="dark"] code {
+  background: var(--color-bg-tertiary);
+  color: var(--color-primary-light);
+}
+
+[data-theme="dark"] pre {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+/* Toast/Dialog Dark Mode */
+[data-theme="dark"] .toast {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .toast.success {
+  border-left-color: var(--color-success);
+}
+
+[data-theme="dark"] .toast.error {
+  border-left-color: var(--color-error);
+}
+
+[data-theme="dark"] .toast.warning {
+  border-left-color: var(--color-warning);
+}
+
+/* Welcome Section Dark Mode Override */
+[data-theme="dark"] .welcome-section {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #3730a3 100%) !important;
+}
+
+/* ============================================================================
+   Login Page Theme Toggle
+   ============================================================================ */
+
+.login-theme-toggle {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+}
+
+.login-page .theme-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.login-page .theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .login-page .theme-toggle {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .login-page .theme-toggle:hover {
+  background: var(--color-bg-hover);
+}

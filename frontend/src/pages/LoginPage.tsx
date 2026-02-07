@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/auth.context';
+import { ThemeToggle } from '../context/ThemeContext';
 
 // ============================================================================
 // Login Page Component
@@ -55,6 +56,9 @@ export default function LoginPage() {
         {/* Header */}
         <div className="login-header">
           <h1 className="login-logo">ProjectForge</h1>
+          <div className="login-theme-toggle">
+            <ThemeToggle />
+          </div>
           <p className="login-subtitle">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>
