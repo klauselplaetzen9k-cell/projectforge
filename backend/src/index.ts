@@ -8,6 +8,50 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import multer from 'multer';
+
+// Make multer available globally for routes
+declare global {
+  namespace Express {
+    interface Request {
+      files?: {
+        [fieldname: string]: Express.Multer.File[];
+      } | Express.Multer.File[];
+    }
+  }
+}
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow common file types
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/png',
+      'image/jpeg',
+      'image/gif',
+      'image/svg+xml',
+      'text/plain',
+      'text/csv',
+      'application/zip',
+      'application/json',
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'));
+    }
+  },
+});
 
 // Load environment variables
 dotenv.config();
@@ -21,6 +65,7 @@ import workPackageRoutes from './routes/work-package.routes';
 import milestoneRoutes from './routes/milestone.routes';
 import timelineRoutes from './routes/timeline.routes';
 import userRoutes from './routes/user.routes';
+import attachmentRoutes from './routes/attachment.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -144,6 +189,9 @@ app.use('/api/timelines', timelineRoutes);
 
 // User routes
 app.use('/api/users', userRoutes);
+
+// Attachment routes (with file upload middleware)
+app.use('/api/attachments', upload.single('file'), attachmentRoutes);
 
 // ============================================================================
 // ERROR HANDLING

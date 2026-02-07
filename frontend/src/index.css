@@ -4090,3 +4090,202 @@ select {
   border-radius: var(--radius-md);
   text-align: center;
 }
+
+/* ============================================================================
+   File Upload Component
+   ============================================================================ */
+
+.file-upload-container {
+  padding: var(--spacing-md);
+}
+
+.dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--color-bg-secondary);
+}
+
+.dropzone:hover,
+.dropzone.active,
+.dropzone.drag-active {
+  border-color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.upload-icon {
+  color: var(--color-text-muted);
+  transition: color 0.3s ease;
+}
+
+.dropzone:hover .upload-icon {
+  color: var(--color-primary);
+}
+
+.dropzone-text {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.dropzone-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.file-rejections {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.file-rejection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
+.rejection-error {
+  color: var(--color-error);
+}
+
+.upload-progress {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+}
+
+/* ============================================================================
+   Attachments List
+   ============================================================================ */
+
+.attachments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.attachments-header h3 {
+  margin: 0;
+}
+
+.attachments-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+  transition: background 0.2s ease;
+}
+
+.attachment-item:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.attachment-icon {
+  font-size: 1.5rem;
+}
+
+.attachment-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attachment-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.attachment-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.attachment-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.attachment-download,
+.attachment-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  transition: background 0.2s ease;
+  font-size: 1rem;
+}
+
+.attachment-download:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.attachment-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.no-attachments {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-muted);
+}

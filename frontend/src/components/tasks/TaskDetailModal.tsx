@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { http } from '../../services/api';
 import TaskComments from './TaskComments';
 import TaskDependencies from './TaskDependencies';
+import FileUpload from '../attachments/FileUpload';
 
 // ============================================================================
 // Types
@@ -97,6 +98,51 @@ export default function TaskDetailModal({ taskId, onClose, onUpdate }: TaskDetai
       case 'MEDIUM': return '🟡';
       case 'LOW': return '🟢';
       default: return '⚪';
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const downloadFile = async (file: any) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/attachments/download/${file.filename || file.name}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.originalName || file.name;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
+  const deleteFile = async (fileId: string) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+    
+    try {
+      await http.delete(`/attachments/${fileId}`);
+      fetchTask();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Delete failed:', error);
     }
   };
 
@@ -245,8 +291,10 @@ export default function TaskDetailModal({ taskId, onClose, onUpdate }: TaskDetai
             <div className="attachments-tab">
               <div className="attachments-header">
                 <h3>📎 Attachments</h3>
-                <button className="upload-button">+ Upload File</button>
               </div>
+              
+              <FileUpload taskId={taskId} onUploadComplete={fetchTask} />
+              
               {task.attachments?.length === 0 ? (
                 <div className="no-attachments">
                   <p>No files attached yet.</p>
@@ -256,10 +304,28 @@ export default function TaskDetailModal({ taskId, onClose, onUpdate }: TaskDetai
                   {task.attachments.map((file: any) => (
                     <li key={file.id} className="attachment-item">
                       <span className="attachment-icon">📄</span>
-                      <span className="attachment-name">{file.name}</span>
-                      <span className="attachment-size">
-                        {Math.round(file.size / 1024)}KB
-                      </span>
+                      <div className="attachment-info">
+                        <span className="attachment-name">{file.name || file.originalName}</span>
+                        <span className="attachment-meta">
+                          {formatFileSize(file.size)} • {new Date(file.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="attachment-actions">
+                        <button 
+                          className="attachment-download"
+                          onClick={() => downloadFile(file)}
+                          title="Download"
+                        >
+                          ⬇️
+                        </button>
+                        <button 
+                          className="attachment-delete"
+                          onClick={() => deleteFile(file.id)}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
