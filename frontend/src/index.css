@@ -3649,3 +3649,111 @@ input, textarea, select {
   font-weight: 500;
   color: var(--color-text-primary);
 }
+
+/* ============================================================================
+   Dark Mode Toggle
+   ============================================================================ */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.theme-icon {
+  font-size: 1rem;
+}
+
+.theme-label {
+  font-weight: 500;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}
+
+/* Prevent transitions on animations */
+@keyframes,
+[class*="animate-"] {
+  animation-timing-function: ease-in-out;
+}
+
+/* Sidebar specific theme transitions */
+.sidebar,
+.sidebar-header,
+.sidebar-nav,
+.sidebar-footer {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Card transitions */
+.milestone-card,
+.stat-card,
+.action-card,
+.dashboard-section {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Modal transitions */
+.modal-overlay,
+.modal {
+  transition: background-color 0.3s ease;
+}
+
+.modal {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Dropdown transitions */
+.notification-dropdown,
+.nav-dropdown {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Button transitions */
+.primary-button,
+.secondary-button,
+.filter-button,
+.filter-pill {
+  transition: all 0.2s ease;
+}
+
+/* Input transitions */
+input,
+textarea,
+select {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Progress bar transitions */
+.progress-fill {
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Gantt chart transitions */
+.gantt-bar {
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+/* Hover effects */
+.gantt-bar:hover {
+  transform: translateY(-2px);
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+}

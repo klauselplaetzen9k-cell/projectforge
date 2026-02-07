@@ -5,6 +5,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth.context';
 import NotificationBell from './notifications/NotificationBell';
+import { ThemeToggle } from '../context/ThemeContext';
 
 // ============================================================================
 // Navigation Items
@@ -80,6 +81,7 @@ export default function Layout() {
                 <span className="user-email">{user.email}</span>
               </div>
               <NotificationBell />
+              <ThemeToggle />
               <button onClick={handleLogout} className="logout-button" title="Logout">
                 <LogoutIcon />
               </button>
