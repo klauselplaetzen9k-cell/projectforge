@@ -4,10 +4,12 @@
 
 import { useState } from 'react';
 import { useAuth } from '../context/auth.context';
+import { useTheme, ThemeOption } from '../context/ThemeContext';
 
 export default function SettingsPage() {
   const { user, updateProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'notifications'>('profile');
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'notifications' | 'theme'>('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -76,6 +78,11 @@ export default function SettingsPage() {
     }
   };
 
+  const handleThemeChange = (newTheme: ThemeOption) => {
+    setTheme(newTheme);
+    setMessage({ type: 'success', text: `Theme changed to ${newTheme}` });
+  };
+
   return (
     <div className="settings-page">
       <h1>Settings</h1>
@@ -93,12 +100,18 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('password')}
         >
           Password
-        <button
         </button>
+        <button
           className={`tab ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveTab('notifications')}
         >
           Notifications
+        </button>
+        <button
+          className={`tab ${activeTab === 'theme' ? 'active' : ''}`}
+          onClick={() => setActiveTab('theme')}
+        >
+          Theme
         </button>
       </div>
 
@@ -207,7 +220,7 @@ export default function SettingsPage() {
                 type="password"
                 id="newPassword"
                 value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                onChange={(e) => setPasswordData({ ...profileData, newPassword: e.target.value })}
                 required
                 minLength={8}
               />
@@ -294,6 +307,75 @@ export default function SettingsPage() {
                 <input type="checkbox" />
                 <span className="toggle-slider"></span>
               </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Theme Tab */}
+      {activeTab === 'theme' && (
+        <div className="settings-form">
+          <div className="form-section">
+            <h2>Theme Preferences</h2>
+            <p className="form-description">
+              Choose your preferred appearance for ProjectForge.
+            </p>
+
+            <div className="theme-options">
+              <div 
+                className={`theme-option ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => handleThemeChange('light')}
+              >
+                <div className="theme-preview light">
+                  <div className="preview-sidebar"></div>
+                  <div className="preview-content">
+                    <div className="preview-header"></div>
+                    <div className="preview-card"></div>
+                  </div>
+                </div>
+                <div className="theme-info">
+                  <span className="theme-name">☀️ Light</span>
+                  <span className="theme-desc">Clean and bright</span>
+                </div>
+              </div>
+
+              <div 
+                className={`theme-option ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => handleThemeChange('dark')}
+              >
+                <div className="theme-preview dark">
+                  <div className="preview-sidebar"></div>
+                  <div className="preview-content">
+                    <div className="preview-header"></div>
+                    <div className="preview-card"></div>
+                  </div>
+                </div>
+                <div className="theme-info">
+                  <span className="theme-name">🌙 Dark</span>
+                  <span className="theme-desc">Easy on the eyes</span>
+                </div>
+              </div>
+
+              <div 
+                className={`theme-option ${theme === 'system' ? 'active' : ''}`}
+                onClick={() => handleThemeChange('system')}
+              >
+                <div className="theme-preview system">
+                  <div className="preview-sidebar"></div>
+                  <div className="preview-content">
+                    <div className="preview-header"></div>
+                    <div className="preview-card"></div>
+                  </div>
+                </div>
+                <div className="theme-info">
+                  <span className="theme-name">💻 System</span>
+                  <span className="theme-desc">Match your device</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="current-theme">
+              <p>Currently active: <strong>{resolvedTheme === 'dark' ? '🌙 Dark' : '☀️ Light'}</strong></p>
             </div>
           </div>
         </div>
