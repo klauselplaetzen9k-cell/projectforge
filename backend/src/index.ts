@@ -66,6 +66,7 @@ import milestoneRoutes from './routes/milestone.routes';
 import timelineRoutes from './routes/timeline.routes';
 import userRoutes from './routes/user.routes';
 import attachmentRoutes from './routes/attachment.routes';
+import notificationRoutes from './routes/notification.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -192,6 +193,9 @@ app.use('/api/users', userRoutes);
 
 // Attachment routes (with file upload middleware)
 app.use('/api/attachments', upload.single('file'), attachmentRoutes);
+
+// Notification routes (Mattermost integration)
+app.use('/api/notifications', notificationRoutes);
 
 // ============================================================================
 // ERROR HANDLING

@@ -568,6 +568,41 @@ model Notification {
   @@index([createdAt])
 }
 
+/// Mattermost/External notification settings per project
+model NotificationSettings {
+  /// Unique identifier
+  id        String   @id @default(cuid())
+  /// Reference to project
+  projectId String   @unique
+  
+  /// Mattermost webhook URL (encrypted in production)
+  mattermostWebhookUrl  String  @default("")
+  /// Mattermost channel
+  mattermostChannel    String  @default("")
+  /// Bot username
+  mattermostUsername   String  @default("ProjectForge")
+  /// Enable Mattermost notifications
+  mattermostEnabled   Boolean @default(false)
+  
+  /// Notification events
+  taskAssigned   Boolean @default(true)
+  taskCompleted Boolean @default(true)
+  taskDueSoon  Boolean @default(true)
+  taskComment  Boolean @default(true)
+  milestoneReached Boolean @default(true)
+  projectUpdated Boolean @default(false)
+  memberJoined Boolean @default(true)
+  
+  /// Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
 // ============================================================================
 // TIMELINES
 // ============================================================================
