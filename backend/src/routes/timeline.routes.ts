@@ -10,11 +10,6 @@ const router = Router();
 router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request, res) => {
   const timelines = await prisma.timeline.findMany({
     where: { projectId: req.params.projectId },
-    include: {
-      events: {
-        orderBy: { startDate: 'asc' },
-      },
-    },
     orderBy: { isDefault: 'desc' },
   });
 
@@ -43,9 +38,6 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
 
   const timeline = await prisma.timeline.create({
     data,
-    include: {
-      events: true,
-    },
   });
 
   res.status(201).json({ timeline });
@@ -55,12 +47,6 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
 router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const timeline = await prisma.timeline.findFirst({
     where: { id: req.params.id },
-    include: {
-      project: { select: { id: true, name: true } },
-      events: {
-        orderBy: { startDate: 'asc' },
-      },
-    },
   });
 
   if (!timeline) {
@@ -102,9 +88,6 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const timeline = await prisma.timeline.update({
     where: { id: req.params.id },
     data,
-    include: {
-      events: true,
-    },
   });
 
   res.json({ timeline });
@@ -176,44 +159,38 @@ router.delete('/:id/events/:eventId', authenticate, asyncHandler(async (req: Req
 router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) => {
   const timeline = await prisma.timeline.findFirst({
     where: { id: req.params.id },
-    include: {
-      events: {
-        orderBy: { startDate: 'asc' },
-      },
-      project: {
-        include: {
-          milestones: {
-            orderBy: { dueDate: 'asc' },
-          },
-          workPackages: true,
-        },
-      },
-    },
   });
 
   if (!timeline) {
     throw new AppError('Timeline not found', 404);
   }
 
-  // Get tasks for work packages
-  const workPackageIds = timeline.project.workPackages.map((wp: any) => wp.id);
+  const events = await prisma.timelineEvent.findMany({
+    where: { timelineId: timeline.id },
+    orderBy: { startDate: 'asc' },
+  });
+
+  const milestones = await prisma.milestone.findMany({
+    where: { projectId: timeline.projectId },
+    orderBy: { dueDate: 'asc' },
+  });
+
+  const workPackages = await prisma.workPackage.findMany({
+    where: { projectId: timeline.projectId },
+  });
+
   const tasks = await prisma.task.findMany({
     where: {
-      workPackageId: { in: workPackageIds },
-    },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      startDate: true,
-      dueDate: true,
-      assigneeId: true,
-      workPackageId: true,
+      projectId: timeline.projectId,
+      workPackageId: { in: workPackages.map(wp => wp.id) },
     },
   });
 
   res.json({ 
     timeline,
+    events,
+    milestones,
+    workPackages,
     tasks,
   });
 }));

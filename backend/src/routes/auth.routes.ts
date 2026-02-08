@@ -89,8 +89,7 @@ router.post('/register', asyncHandler(async (req, res) => {
     user.id,
     tokens.refreshToken,
     req.ip,
-    req.get('user-agent'),
-    tokens.accessToken
+    req.get('user-agent')
   );
 
   res.status(201).json({
@@ -142,8 +141,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     user.id,
     tokens.refreshToken,
     req.ip,
-    req.get('user-agent'),
-    tokens.accessToken
+    req.get('user-agent')
   );
 
   res.json({
