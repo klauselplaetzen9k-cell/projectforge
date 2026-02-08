@@ -1,13 +1,13 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
 
 // Get work packages for a project
-router.get('/project/:projectId', authenticate, async (req: AuthenticatedRequest, res) => {
+router.get('/project/:projectId', authenticate, async (req: Request, res) => {
   const workPackages = await prisma.workPackage.findMany({
     where: { projectId: req.params.projectId },
     include: {
@@ -24,7 +24,7 @@ router.get('/project/:projectId', authenticate, async (req: AuthenticatedRequest
 });
 
 // Create work package
-router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticate, async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200),
     description: z.string().optional(),
@@ -60,7 +60,7 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
 });
 
 // Get single work package
-router.get('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, async (req: Request, res) => {
   const workPackage = await prisma.workPackage.findFirst({
     where: { id: req.params.id },
     include: {
@@ -96,7 +96,7 @@ router.get('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
 });
 
 // Update work package
-router.put('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+router.put('/:id', authenticate, async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
@@ -122,7 +122,7 @@ router.put('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
 });
 
 // Delete work package
-router.delete('/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticate, async (req: Request, res) => {
   await prisma.workPackage.delete({
     where: { id: req.params.id },
   });

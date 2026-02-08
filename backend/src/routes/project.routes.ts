@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest, authorize } from '../middleware/auth.middleware';
+import { authenticate, Request, authorize } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
 
 // Get all projects for user
-router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/', authenticate, asyncHandler(async (req: Request, res) => {
   const projects = await prisma.project.findMany({
     where: {
       members: {
@@ -32,7 +32,7 @@ router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res
 }));
 
 // Create project
-router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(100),
     description: z.string().optional(),
@@ -101,7 +101,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
 }));
 
 // Get single project
-router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const project = await prisma.project.findFirst({
     where: {
       id: req.params.id,
@@ -133,7 +133,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Update project
-router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(100).optional(),
     description: z.string().optional().nullable(),
@@ -162,7 +162,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Delete project
-router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.project.delete({
     where: { id: req.params.id },
   });
@@ -171,7 +171,7 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
 }));
 
 // Add project member
-router.post('/:id/members', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/members', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     userId: z.string(),
     role: z.enum(['OWNER', 'MANAGER', 'MEMBER', 'VIEWER']).optional(),
@@ -194,7 +194,7 @@ router.post('/:id/members', authenticate, asyncHandler(async (req: Authenticated
 }));
 
 // Remove project member
-router.delete('/:id/members/:userId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id/members/:userId', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.projectMember.delete({
     where: {
       projectId_userId: {

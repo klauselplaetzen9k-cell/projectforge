@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { authenticate, Request } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { hashPassword } from '../lib/auth';
 
 const router = Router();
 
 // Search users (for assigning to tasks/teams)
-router.get('/search', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/search', authenticate, asyncHandler(async (req: Request, res) => {
   const { q } = req.query;
 
   if (!q || typeof q !== 'string' || q.length < 2) {
@@ -42,7 +42,7 @@ router.get('/search', authenticate, asyncHandler(async (req: AuthenticatedReques
 }));
 
 // Get all users (admin only)
-router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/', authenticate, asyncHandler(async (req: Request, res) => {
   const { role, isActive, search } = req.query;
 
   const users = await prisma.user.findMany({
@@ -81,7 +81,7 @@ router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res
 }));
 
 // Get user by ID
-router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.params.id },
     select: {
@@ -116,7 +116,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Update profile (own profile)
-router.put('/profile', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/profile', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     firstName: z.string().min(1).max(50).optional(),
     lastName: z.string().min(1).max(50).optional(),
@@ -142,7 +142,7 @@ router.put('/profile', authenticate, asyncHandler(async (req: AuthenticatedReque
 }));
 
 // Change password
-router.put('/change-password', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/change-password', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     currentPassword: z.string(),
     newPassword: z.string().min(8),
@@ -177,7 +177,7 @@ router.put('/change-password', authenticate, asyncHandler(async (req: Authentica
 }));
 
 // Get notifications
-router.get('/notifications', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/notifications', authenticate, asyncHandler(async (req: Request, res) => {
   const { unreadOnly, limit } = req.query;
 
   const notifications = await prisma.notification.findMany({
@@ -200,7 +200,7 @@ router.get('/notifications', authenticate, asyncHandler(async (req: Authenticate
 }));
 
 // Mark notification as read
-router.put('/notifications/:id/read', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/notifications/:id/read', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.notification.update({
     where: { id: req.params.id },
     data: { isRead: true },
@@ -210,7 +210,7 @@ router.put('/notifications/:id/read', authenticate, asyncHandler(async (req: Aut
 }));
 
 // Mark all notifications as read
-router.put('/notifications/read-all', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/notifications/read-all', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.notification.updateMany({
     where: {
       userId: req.user!.userId,
@@ -223,7 +223,7 @@ router.put('/notifications/read-all', authenticate, asyncHandler(async (req: Aut
 }));
 
 // Admin: Update user role
-router.put('/:id/role', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id/role', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     role: z.enum(['ADMIN', 'MANAGER', 'MEMBER', 'VIEWER']),
   });
@@ -246,7 +246,7 @@ router.put('/:id/role', authenticate, asyncHandler(async (req: AuthenticatedRequ
 }));
 
 // Admin: Deactivate user
-router.put('/:id/deactivate', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id/deactivate', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.user.update({
     where: { id: req.params.id },
     data: { isActive: false },
@@ -256,7 +256,7 @@ router.put('/:id/deactivate', authenticate, asyncHandler(async (req: Authenticat
 }));
 
 // Admin: Reactivate user
-router.put('/:id/activate', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id/activate', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.user.update({
     where: { id: req.params.id },
     data: { isActive: true },

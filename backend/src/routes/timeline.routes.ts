@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { authenticate, Request } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
 
 // Get timelines for a project
-router.get('/project/:projectId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request, res) => {
   const timelines = await prisma.timeline.findMany({
     where: { projectId: req.params.projectId },
     include: {
@@ -22,7 +22,7 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Authent
 }));
 
 // Create timeline
-router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200),
     projectId: z.string(),
@@ -52,7 +52,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
 }));
 
 // Get single timeline
-router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const timeline = await prisma.timeline.findFirst({
     where: { id: req.params.id },
     include: {
@@ -71,7 +71,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Update timeline
-router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200).optional(),
     startDate: z.date().optional(),
@@ -111,7 +111,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Delete timeline
-router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.timeline.delete({
     where: { id: req.params.id },
   });
@@ -120,7 +120,7 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
 }));
 
 // Add event to timeline
-router.post('/:id/events', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/events', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     title: z.string().min(1).max(200),
     description: z.string().optional(),
@@ -143,7 +143,7 @@ router.post('/:id/events', authenticate, asyncHandler(async (req: AuthenticatedR
 }));
 
 // Update timeline event
-router.put('/:id/events/:eventId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id/events/:eventId', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     title: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
@@ -164,7 +164,7 @@ router.put('/:id/events/:eventId', authenticate, asyncHandler(async (req: Authen
 }));
 
 // Delete timeline event
-router.delete('/:id/events/:eventId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id/events/:eventId', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.timelineEvent.delete({
     where: { id: req.params.eventId },
   });
@@ -173,7 +173,7 @@ router.delete('/:id/events/:eventId', authenticate, asyncHandler(async (req: Aut
 }));
 
 // Get timeline data for Gantt chart
-router.get('/:id/gantt', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) => {
   const timeline = await prisma.timeline.findFirst({
     where: { id: req.params.id },
     include: {

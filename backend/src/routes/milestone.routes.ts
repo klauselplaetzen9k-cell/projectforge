@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { authenticate, Request } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
 
 // Get milestones for a project
-router.get('/project/:projectId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request, res) => {
   const milestones = await prisma.milestone.findMany({
     where: { projectId: req.params.projectId },
     include: {
@@ -32,7 +32,7 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Authent
 }));
 
 // Create milestone
-router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200),
     description: z.string().optional(),
@@ -54,7 +54,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
 }));
 
 // Get single milestone
-router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const milestone = await prisma.milestone.findFirst({
     where: { id: req.params.id },
     include: {
@@ -83,7 +83,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Update milestone
-router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
@@ -122,7 +122,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Delete milestone
-router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.milestone.delete({
     where: { id: req.params.id },
   });
@@ -131,7 +131,7 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
 }));
 
 // Add task to milestone
-router.post('/:id/tasks', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/tasks', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     taskId: z.string(),
   });
@@ -151,7 +151,7 @@ router.post('/:id/tasks', authenticate, asyncHandler(async (req: AuthenticatedRe
 }));
 
 // Remove task from milestone
-router.delete('/:id/tasks/:taskId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id/tasks/:taskId', authenticate, asyncHandler(async (req: Request, res) => {
   const milestone = await prisma.milestone.update({
     where: { id: req.params.id },
     data: {

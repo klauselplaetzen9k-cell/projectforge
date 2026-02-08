@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { authenticate, Request } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
 
 // Get tasks for a project
-router.get('/project/:projectId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request, res) => {
   const tasks = await prisma.task.findMany({
     where: { projectId: req.params.projectId },
     include: {
@@ -23,7 +23,7 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Authent
 }));
 
 // Get my tasks
-router.get('/my', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/my', authenticate, asyncHandler(async (req: Request, res) => {
   const { status, projectId } = req.query;
 
   const tasks = await prisma.task.findMany({
@@ -45,7 +45,7 @@ router.get('/my', authenticate, asyncHandler(async (req: AuthenticatedRequest, r
 }));
 
 // Create task
-router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     title: z.string().min(1).max(200),
     description: z.string().optional(),
@@ -111,7 +111,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
 }));
 
 // Get single task
-router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const task = await prisma.task.findFirst({
     where: {
       id: req.params.id,
@@ -157,7 +157,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Update task
-router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     title: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
@@ -237,7 +237,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 }));
 
 // Delete task
-router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.task.delete({
     where: { id: req.params.id },
   });
@@ -246,7 +246,7 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
 }));
 
 // Add comment
-router.post('/:id/comments', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/comments', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     content: z.string().min(1),
   });
@@ -289,7 +289,7 @@ router.post('/:id/comments', authenticate, asyncHandler(async (req: Authenticate
 }));
 
 // Log time
-router.post('/:id/log-time', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/log-time', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     hours: z.number().positive(),
     description: z.string().optional(),
@@ -312,7 +312,7 @@ router.post('/:id/log-time', authenticate, asyncHandler(async (req: Authenticate
 // ============================================================================
 
 // Get task dependencies
-router.get('/:id/dependencies', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/:id/dependencies', authenticate, asyncHandler(async (req: Request, res) => {
   const task = await prisma.task.findFirst({
     where: {
       id: req.params.id,
@@ -359,7 +359,7 @@ router.get('/:id/dependencies', authenticate, asyncHandler(async (req: Authentic
 }));
 
 // Add dependency (this task depends on another task)
-router.post('/:id/dependencies', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/:id/dependencies', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     dependsOnTaskId: z.string(),
   });
@@ -432,7 +432,7 @@ router.post('/:id/dependencies', authenticate, asyncHandler(async (req: Authenti
 }));
 
 // Remove dependency
-router.delete('/:id/dependencies/:dependsOnTaskId', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/:id/dependencies/:dependsOnTaskId', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.taskDependency.delete({
     where: {
       taskId_dependsOnTaskId: {

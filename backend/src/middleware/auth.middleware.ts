@@ -7,8 +7,12 @@ import { verifyToken, TokenPayload } from '../lib/auth';
 import { prisma } from '../lib/prisma';
 
 // Extend Express Request type to include user
-export interface AuthenticatedRequest extends Request {
-  user?: TokenPayload & { id: string };
+declare global {
+  namespace Express {
+    interface Request {
+      user?: TokenPayload & { id: string };
+    }
+  }
 }
 
 /**
@@ -16,7 +20,7 @@ export interface AuthenticatedRequest extends Request {
  * Verifies JWT token from Authorization header
  */
 export async function authenticate(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -85,7 +89,7 @@ export async function authenticate(
  * Creates middleware to check user roles
  */
 export function authorize(...roles: string[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: 'Not authenticated' });
       return;
@@ -109,7 +113,7 @@ export function authorize(...roles: string[]) {
  * Attaches user to request if token is valid, but doesn't require it
  */
 export async function optionalAuth(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
