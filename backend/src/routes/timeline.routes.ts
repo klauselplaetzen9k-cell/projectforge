@@ -201,32 +201,35 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) =>
     throw new AppError('Timeline not found', 404);
   }
 
-  // Filter workPackages and tasks to those that overlap with timeline
-  const { startDate: tlStart, endDate: tlEnd } = timeline;
-  
-  const filteredWorkPackages = timeline.project.workPackages.filter(wp => {
+  // Extract timeline dates
+  const tlStart = timeline.startDate;
+  const tlEnd = timeline.endDate;
+
+  // Filter work packages that overlap with timeline
+  const workPackagesWithOverlap = timeline.project.workPackages.filter((wp: any) => {
     if (!wp.startDate || !wp.dueDate) return false;
     return wp.startDate <= tlEnd && wp.dueDate >= tlStart;
   });
 
-  const filteredTasks = timeline.project.workPackages.flatMap(wp =>
-    wp.tasks
-      .filter(task => {
-        if (!task.startDate || !task.dueDate) return false;
-        return task.startDate <= tlEnd && task.dueDate >= tlStart;
-      })
-      .map(task => ({ ...task, workPackageId: wp.id }))
-  );
+  // Flatten and filter tasks
+  const tasksWithOverlap: Array<{id: string; title: string; status: string; startDate: Date; dueDate: Date; assigneeId: string | null; workPackageId: string}> = [];
+  timeline.project.workPackages.forEach((wp: any) => {
+    wp.tasks.forEach((task: any) => {
+      if (task.startDate && task.dueDate && task.startDate <= tlEnd && task.dueDate >= tlStart) {
+        tasksWithOverlap.push({ ...task, workPackageId: wp.id });
+      }
+    });
+  });
 
   res.json({ 
     timeline: {
       ...timeline,
       project: {
         ...timeline.project,
-        workPackages: filteredWorkPackages,
+        workPackages: workPackagesWithOverlap,
       },
     },
-    tasks: filteredTasks,
+    tasks: tasksWithOverlap,
   });
 }));
 

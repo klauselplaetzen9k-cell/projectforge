@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { UserRole } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middleware/auth.middleware';
@@ -47,7 +47,7 @@ router.get('/', authenticate, asyncHandler(async (req: Request, res) => {
 
   const users = await prisma.user.findMany({
     where: {
-      ...(role && { role: role as string }),
+      ...(role && { role: role as UserRole }),
       ...(isActive !== undefined && { isActive: isActive === 'true' }),
       ...(search && {
         OR: [
@@ -159,7 +159,7 @@ router.put('/change-password', authenticate, asyncHandler(async (req: Request, r
     throw new AppError('Cannot change password for OAuth users', 400);
   }
 
-  const { verifyPassword } = await import('../lib/auth');
+  const { verifyPassword } = await import('../lib/auth.js');
   const validPassword = await verifyPassword(data.currentPassword, user.passwordHash);
 
   if (!validPassword) {
