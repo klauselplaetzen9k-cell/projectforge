@@ -6,15 +6,6 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../lib/auth';
 import { prisma } from '../lib/prisma';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload & { id: string };
-    }
-  }
-}
-
 /**
  * Authentication middleware
  * Verifies JWT token from Authorization header
