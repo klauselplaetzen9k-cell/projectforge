@@ -213,7 +213,7 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: AuthenticatedReq
 
   if (!timeline) {
     throw new AppError('Timeline not found', 404);
-  });
+  }
 
   res.json({ timeline });
 }));

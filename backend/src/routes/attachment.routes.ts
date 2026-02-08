@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { localStorageService, UploadedFile } from '../services/storage.service';
-import { authenticateToken } from '../lib/auth';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();

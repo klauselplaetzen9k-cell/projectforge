@@ -8,7 +8,10 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 // Configuration
 // ============================================================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Use relative path in production (nginx proxies /api), absolute URL in development
+const API_BASE_URL = import.meta.env.PROD 
+  ? '' 
+  : import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ============================================================================
 // API Client Creation

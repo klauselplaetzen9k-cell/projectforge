@@ -134,3 +134,6 @@ export async function optionalAuth(
     next();
   }
 }
+
+// Alias for backwards compatibility
+export const authenticateToken = authenticate;

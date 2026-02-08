@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: projectforge
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-scripts:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     healthcheck:
@@ -20,22 +19,40 @@ services:
       retries: 5
     networks:
       - projectforge-network
+    restart: unless-stopped
 
-  # Uncomment for development with hot reload
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile.dev
-  #   volumes:
-  #     - ./backend:/app
-  #     - /app/node_modules
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/projectforge?schema=public
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   networks:
-  #     - projectforge-network
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: projectforge-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/projectforge?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-refresh-token-secret-change-in-production
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - projectforge-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: projectforge-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - projectforge-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

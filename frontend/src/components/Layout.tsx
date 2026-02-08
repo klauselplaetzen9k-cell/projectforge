@@ -5,7 +5,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth.context';
 import NotificationBell from './notifications/NotificationBell';
-import { ThemeToggle } from '../context/ThemeContext';
+import ThemeToggle from '../context/ThemeContext';
 
 // ============================================================================
 // Navigation Items

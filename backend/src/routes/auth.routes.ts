@@ -2,7 +2,7 @@
 // Authentication Routes
 // ============================================================================
 
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import {
@@ -15,6 +15,7 @@ import {
   invalidateSession,
   invalidateAllUserSessions,
   getUserSessions,
+  getSessionByRefreshToken,
   validateCredentials,
 } from '../lib/auth';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
@@ -117,6 +118,10 @@ router.post('/login', asyncHandler(async (req, res) => {
     throw new AppError(result.error, 403);
   }
 
+  if (!result.user) {
+    throw new AppError('User not found', 404);
+  }
+
   const user = result.user;
 
   // Update last login
@@ -205,7 +210,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
 // POST /api/auth/logout
 // ============================================================================
 
-router.post('/logout', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/logout', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: any) => {
   const authHeader = req.headers.authorization;
   const accessToken = authHeader?.substring(7);
 
@@ -215,33 +220,33 @@ router.post('/logout', authenticate, asyncHandler(async (req: AuthenticatedReque
   }
 
   res.json({ message: 'Logged out successfully' });
-}));
+}) as RequestHandler);
 
 // ============================================================================
 // POST /api/auth/logout-all
 // ============================================================================
 
-router.post('/logout-all', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/logout-all', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: any) => {
   await invalidateAllUserSessions(req.user!.userId);
 
   res.json({ message: 'All sessions logged out successfully' });
-}));
+}) as RequestHandler);
 
 // ============================================================================
 // GET /api/auth/sessions
 // ============================================================================
 
-router.get('/sessions', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/sessions', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: any) => {
   const sessions = await getUserSessions(req.user!.userId);
 
   res.json({ sessions });
-}));
+}) as RequestHandler);
 
 // ============================================================================
 // GET /api/auth/me
 // ============================================================================
 
-router.get('/me', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.get('/me', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: any) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },
     select: {

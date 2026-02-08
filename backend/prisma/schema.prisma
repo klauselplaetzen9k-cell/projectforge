@@ -189,11 +189,13 @@ model Project {
   updatedAt    DateTime       @updatedAt
 
   // Relations
-  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  members     ProjectMember[]
-  workPackages WorkPackage[]
-  milestones  Milestone[]
-  activities  Activity[]
+  team                 Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members              ProjectMember[]
+  workPackages         WorkPackage[]
+  milestones           Milestone[]
+  activities           Activity[]
+  tasks                Task[]
+  notificationSettings NotificationSettings?
 
   @@unique([teamId, slug])
   @@index([teamId])
