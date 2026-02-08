@@ -2,7 +2,7 @@
 // Error Handling Middleware
 // ============================================================================
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 
 // Custom error class for operational errors
@@ -122,8 +122,8 @@ export async function errorHandler(
  */
 export function asyncHandler(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
-) {
+): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    Promise.resolve(fn(req as any, res, next)).catch(next);
   };
 }
