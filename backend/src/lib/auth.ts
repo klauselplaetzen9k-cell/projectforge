@@ -137,8 +137,7 @@ export async function createUserSession(
   userId: string,
   refreshToken: string,
   ipAddress?: string,
-  userAgent?: string,
-  accessToken?: string
+  userAgent?: string
 ) {
   const expiresAt = new Date();
   // Refresh token expires in 30 days
@@ -147,8 +146,7 @@ export async function createUserSession(
   return prisma.userSession.create({
     data: {
       userId,
-      token: refreshToken, // Store refresh token
-      accessToken, // Optional: store access token for immediate invalidation
+      token: refreshToken,
       expiresAt,
       ipAddress,
       userAgent,

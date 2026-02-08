@@ -195,7 +195,6 @@ router.post('/refresh', asyncHandler(async (req, res) => {
     where: { id: session.id },
     data: {
       token: tokens.refreshToken,
-      accessToken: tokens.accessToken,
       expiresAt,
     },
   });

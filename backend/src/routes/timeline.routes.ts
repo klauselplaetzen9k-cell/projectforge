@@ -1,10 +1,8 @@
-import { Router } from 'express';
-import { Request } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
-import { UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -187,13 +185,7 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) =>
           milestones: {
             orderBy: { dueDate: 'asc' },
           },
-          workPackages: {
-            include: {
-              tasks: {
-                select: { id: true, title: true, status: true, startDate: true, dueDate: true, assigneeId: true },
-              },
-            },
-          },
+          workPackages: true,
         },
       },
     },
@@ -203,35 +195,26 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) =>
     throw new AppError('Timeline not found', 404);
   }
 
-  // Extract timeline dates
-  const tlStart = timeline.startDate;
-  const tlEnd = timeline.endDate;
-
-  // Filter work packages that overlap with timeline
-  const workPackagesWithOverlap = timeline.project.workPackages.filter((wp: any) => {
-    if (!wp.startDate || !wp.dueDate) return false;
-    return wp.startDate <= tlEnd && wp.dueDate >= tlStart;
-  });
-
-  // Flatten and filter tasks
-  const tasksWithOverlap: Array<{id: string; title: string; status: string; startDate: Date; dueDate: Date; assigneeId: string | null; workPackageId: string}> = [];
-  timeline.project.workPackages.forEach((wp: any) => {
-    wp.tasks.forEach((task: any) => {
-      if (task.startDate && task.dueDate && task.startDate <= tlEnd && task.dueDate >= tlStart) {
-        tasksWithOverlap.push({ ...task, workPackageId: wp.id });
-      }
-    });
+  // Get tasks for work packages
+  const workPackageIds = timeline.project.workPackages.map((wp: any) => wp.id);
+  const tasks = await prisma.task.findMany({
+    where: {
+      workPackageId: { in: workPackageIds },
+    },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      startDate: true,
+      dueDate: true,
+      assigneeId: true,
+      workPackageId: true,
+    },
   });
 
   res.json({ 
-    timeline: {
-      ...timeline,
-      project: {
-        ...timeline.project,
-        workPackages: workPackagesWithOverlap,
-      },
-    },
-    tasks: tasksWithOverlap,
+    timeline,
+    tasks,
   });
 }));
 

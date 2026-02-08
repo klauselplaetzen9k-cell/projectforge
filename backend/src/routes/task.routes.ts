@@ -26,12 +26,21 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request
 router.get('/my', authenticate, asyncHandler(async (req: Request, res) => {
   const { status, projectId } = req.query;
 
+  // Build where clause with proper types
+  const where: any = {
+    assigneeId: req.user!.userId,
+  };
+  
+  if (status && typeof status === 'string') {
+    where.status = status;
+  }
+  
+  if (projectId && typeof projectId === 'string') {
+    where.projectId = projectId;
+  }
+
   const tasks = await prisma.task.findMany({
-    where: {
-      assigneeId: req.user!.userId,
-      ...(status && { status: status as string }),
-      ...(projectId && { projectId: projectId as string }),
-    },
+    where,
     include: {
       project: { select: { id: true, name: true, key: true } },
       workPackage: { select: { id: true, name: true } },
@@ -54,13 +63,21 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
     milestoneId: z.string().optional(),
     assigneeId: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-    status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
+    estimatedHours: z.number().positive().optional(),
     startDate: z.date().optional(),
     dueDate: z.date().optional(),
-    estimatedHours: z.number().positive().optional(),
   });
 
   const data = schema.parse(req.body);
+
+  // Check project membership
+  const projectMember = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId: data.projectId, userId: req.user!.userId } },
+  });
+
+  if (!projectMember) {
+    throw new AppError('You are not a member of this project', 403);
+  }
 
   // Get next sort order
   const lastTask = await prisma.task.findFirst({
@@ -70,11 +87,18 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
 
   const task = await prisma.task.create({
     data: {
-      ...data,
+      title: data.title,
+      description: data.description,
+      projectId: data.projectId,
+      workPackageId: data.workPackageId,
+      milestoneId: data.milestoneId,
+      assigneeId: data.assigneeId,
       creatorId: req.user!.userId,
-      sortOrder: (lastTask?.sortOrder || 0) + 1,
-      status: data.status || 'TODO',
       priority: data.priority || 'MEDIUM',
+      estimatedHours: data.estimatedHours,
+      startDate: data.startDate,
+      dueDate: data.dueDate,
+      sortOrder: (lastTask?.sortOrder || 0) + 1,
     },
     include: {
       assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
@@ -87,25 +111,13 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
   await prisma.activity.create({
     data: {
       action: 'TASK_CREATED',
-      entityType: 'task',
+      entityType: 'Task',
       entityId: task.id,
       userId: req.user!.userId,
       projectId: task.projectId,
-      metadata: { taskTitle: task.title },
+      taskId: task.id,
     },
   });
-
-  // Create notification for assignee
-  if (data.assigneeId && data.assigneeId !== req.user!.userId) {
-    await prisma.notification.create({
-      data: {
-        userId: data.assigneeId,
-        title: 'New task assigned',
-        message: `You have been assigned to: ${task.title}`,
-        link: `/projects/${task.projectId}/tasks/${task.id}`,
-      },
-    });
-  }
 
   res.status(201).json({ task });
 }));
@@ -113,18 +125,13 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
 // Get single task
 router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const task = await prisma.task.findFirst({
-    where: {
-      id: req.params.id,
-      project: {
-        members: { some: { userId: req.user!.userId } },
-      },
-    },
+    where: { id: req.params.id },
     include: {
-      assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
-      creator: { select: { id: true, firstName: true, lastName: true, email: true } },
-      workPackage: true,
-      milestone: true,
       project: { select: { id: true, name: true, key: true } },
+      workPackage: { select: { id: true, name: true } },
+      milestone: { select: { id: true, name: true, dueDate: true } },
+      assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+      creator: { select: { id: true, firstName: true, lastName: true } },
       comments: {
         include: {
           user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
@@ -134,16 +141,12 @@ router.get('/:id', authenticate, asyncHandler(async (req: Request, res) => {
       attachments: true,
       dependencies: {
         include: {
-          dependsOnTask: {
-            select: { id: true, title: true, status: true },
-          },
+          dependsOnTask: { select: { id: true, title: true, status: true } },
         },
       },
       dependents: {
         include: {
-          task: {
-            select: { id: true, title: true, status: true },
-          },
+          task: { select: { id: true, title: true, status: true } },
         },
       },
     },
@@ -164,11 +167,10 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
     status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     assigneeId: z.string().optional().nullable(),
-    workPackageId: z.string().optional().nullable(),
-    milestoneId: z.string().optional().nullable(),
+    estimatedHours: z.number().positive().optional().nullable(),
+    loggedHours: z.number().min(0).optional(),
     startDate: z.date().optional().nullable(),
     dueDate: z.date().optional().nullable(),
-    estimatedHours: z.number().positive().optional().nullable(),
     sortOrder: z.number().optional(),
   });
 
@@ -186,7 +188,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
     where: { id: req.params.id },
     data: {
       ...data,
-      ...(data.status === 'DONE' && { completedAt: new Date() }),
+      ...(data.status === 'DONE' && !existingTask.completedAt && { completedAt: new Date() }),
     },
     include: {
       assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
@@ -195,254 +197,106 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
     },
   });
 
-  // Determine activity type
-  if (existingTask.assigneeId !== data.assigneeId && data.assigneeId) {
-    await prisma.activity.create({
-      data: {
-        action: 'TASK_ASSIGNED',
-        entityType: 'task',
-        entityId: task.id,
-        userId: req.user!.userId,
-        projectId: task.projectId,
-        metadata: { taskTitle: task.title, assigneeId: data.assigneeId },
-      },
-    });
+  // Log activity
+  await prisma.activity.create({
+    data: {
+      action: 'TASK_UPDATED',
+      entityType: 'Task',
+      entityId: task.id,
+      userId: req.user!.userId,
+      projectId: task.projectId,
+      taskId: task.id,
+    },
+  });
 
-    if (data.assigneeId !== req.user!.userId) {
-      await prisma.notification.create({
+  res.json({ task });
+}));
+
+// Reorder tasks
+router.put('/reorder', authenticate, asyncHandler(async (req: Request, res) => {
+  const schema = z.object({
+    projectId: z.string(),
+    taskUpdates: z.array(z.object({
+      id: z.string(),
+      sortOrder: z.number(),
+      status: z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
+    })),
+  });
+
+  const { projectId, taskUpdates } = schema.parse(req.body);
+
+  // Check project membership
+  const projectMember = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId: req.user!.userId } },
+  });
+
+  if (!projectMember) {
+    throw new AppError('You are not a member of this project', 403);
+  }
+
+  // Update all tasks
+  await prisma.$transaction(
+    taskUpdates.map(update =>
+      prisma.task.update({
+        where: { id: update.id },
         data: {
-          userId: data.assigneeId,
-          title: 'Task assigned to you',
-          message: `You have been assigned to: ${task.title}`,
-          link: `/projects/${task.projectId}/tasks/${task.id}`,
+          sortOrder: update.sortOrder,
+          ...(update.status && { status: update.status }),
         },
-      });
-    }
-  }
+      })
+    )
+  );
 
-  if (data.status === 'DONE' && existingTask.status !== 'DONE') {
-    await prisma.activity.create({
-      data: {
-        action: 'TASK_COMPLETED',
-        entityType: 'task',
-        entityId: task.id,
-        userId: req.user!.userId,
-        projectId: task.projectId,
-        metadata: { taskTitle: task.title },
-      },
-    });
-  }
+  res.json({ message: 'Tasks reordered successfully' });
+}));
+
+// Assign task
+router.put('/:id/assign', authenticate, asyncHandler(async (req: Request, res) => {
+  const schema = z.object({
+    assigneeId: z.string().nullable(),
+  });
+
+  const { assigneeId } = schema.parse(req.body);
+
+  const task = await prisma.task.update({
+    where: { id: req.params.id },
+    data: { assigneeId },
+    include: {
+      assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+    },
+  });
+
+  // Log activity
+  await prisma.activity.create({
+    data: {
+      action: 'TASK_ASSIGNED',
+      entityType: 'Task',
+      entityId: task.id,
+      userId: req.user!.userId,
+      projectId: task.projectId,
+      taskId: task.id,
+      metadata: { assigneeId },
+    },
+  });
 
   res.json({ task });
 }));
 
 // Delete task
 router.delete('/:id', authenticate, asyncHandler(async (req: Request, res) => {
+  const task = await prisma.task.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!task) {
+    throw new AppError('Task not found', 404);
+  }
+
   await prisma.task.delete({
     where: { id: req.params.id },
   });
 
   res.json({ message: 'Task deleted successfully' });
-}));
-
-// Add comment
-router.post('/:id/comments', authenticate, asyncHandler(async (req: Request, res) => {
-  const schema = z.object({
-    content: z.string().min(1),
-  });
-
-  const data = schema.parse(req.body);
-
-  const task = await prisma.task.findUnique({
-    where: { id: req.params.id },
-    select: { id: true, title: true, projectId: true, assigneeId: true },
-  });
-
-  if (!task) {
-    throw new AppError('Task not found', 404);
-  }
-
-  const comment = await prisma.comment.create({
-    data: {
-      content: data.content,
-      taskId: req.params.id,
-      userId: req.user!.userId,
-    },
-    include: {
-      user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-    },
-  });
-
-  // Notify assignee if different from commenter
-  if (task.assigneeId && task.assigneeId !== req.user!.userId) {
-    await prisma.notification.create({
-      data: {
-        userId: task.assigneeId,
-        title: 'New comment',
-        message: `New comment on: ${task.title}`,
-        link: `/projects/${task.projectId}/tasks/${task.id}`,
-      },
-    });
-  }
-
-  res.status(201).json({ comment });
-}));
-
-// Log time
-router.post('/:id/log-time', authenticate, asyncHandler(async (req: Request, res) => {
-  const schema = z.object({
-    hours: z.number().positive(),
-    description: z.string().optional(),
-  });
-
-  const data = schema.parse(req.body);
-
-  const task = await prisma.task.update({
-    where: { id: req.params.id },
-    data: {
-      loggedHours: { increment: data.hours },
-    },
-  });
-
-  res.json({ task, loggedHours: task.loggedHours });
-}));
-
-// ============================================================================
-// Task Dependencies
-// ============================================================================
-
-// Get task dependencies
-router.get('/:id/dependencies', authenticate, asyncHandler(async (req: Request, res) => {
-  const task = await prisma.task.findFirst({
-    where: {
-      id: req.params.id,
-      project: {
-        members: { some: { userId: req.user!.userId } },
-      },
-    },
-    include: {
-      dependencies: {
-        include: {
-          dependsOnTask: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              assignee: { select: { id: true, firstName: true, lastName: true } },
-            },
-          },
-        },
-      },
-      dependents: {
-        include: {
-          task: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              assignee: { select: { id: true, firstName: true, lastName: true } },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!task) {
-    throw new AppError('Task not found', 404);
-  }
-
-  res.json({
-    blocks: task.dependencies, // Tasks this task is blocked by
-    blockedBy: task.dependents, // Tasks blocked by this task
-  });
-}));
-
-// Add dependency (this task depends on another task)
-router.post('/:id/dependencies', authenticate, asyncHandler(async (req: Request, res) => {
-  const schema = z.object({
-    dependsOnTaskId: z.string(),
-  });
-
-  const data = schema.parse(req.body);
-
-  // Check if task exists
-  const task = await prisma.task.findFirst({
-    where: {
-      id: req.params.id,
-      project: {
-        members: { some: { userId: req.user!.userId } },
-      },
-    },
-  });
-
-  if (!task) {
-    throw new AppError('Task not found', 404);
-  }
-
-  // Check if dependency task exists in same project
-  const dependencyTask = await prisma.task.findFirst({
-    where: {
-      id: data.dependsOnTaskId,
-      projectId: task.projectId,
-    },
-  });
-
-  if (!dependencyTask) {
-    throw new AppError('Dependency task not found or not in same project', 404);
-  }
-
-  // Check for circular dependency
-  const existingDependencies = await prisma.taskDependency.findMany({
-    where: { taskId: data.dependsOnTaskId },
-  });
-
-  const dependencyIds = existingDependencies.map(d => d.dependsOnTaskId);
-  if (dependencyIds.includes(req.params.id)) {
-    throw new AppError('Cannot create circular dependency', 400);
-  }
-
-  // Check if dependency already exists
-  const existing = await prisma.taskDependency.findUnique({
-    where: {
-      taskId_dependsOnTaskId: {
-        taskId: req.params.id,
-        dependsOnTaskId: data.dependsOnTaskId,
-      },
-    },
-  });
-
-  if (existing) {
-    throw new AppError('Dependency already exists', 409);
-  }
-
-  const dependency = await prisma.taskDependency.create({
-    data: {
-      taskId: req.params.id,
-      dependsOnTaskId: data.dependsOnTaskId,
-    },
-    include: {
-      dependsOnTask: {
-        select: { id: true, title: true, status: true },
-      },
-    },
-  });
-
-  res.status(201).json({ dependency });
-}));
-
-// Remove dependency
-router.delete('/:id/dependencies/:dependsOnTaskId', authenticate, asyncHandler(async (req: Request, res) => {
-  await prisma.taskDependency.delete({
-    where: {
-      taskId_dependsOnTaskId: {
-        taskId: req.params.id,
-        dependsOnTaskId: req.params.dependsOnTaskId,
-      },
-    },
-  });
-
-  res.json({ message: 'Dependency removed successfully' });
 }));
 
 export default router;
