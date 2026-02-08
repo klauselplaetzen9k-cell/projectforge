@@ -119,11 +119,12 @@ export async function errorHandler(
 /**
  * Async handler wrapper
  * Wraps async route handlers to catch errors
+ * Uses any types to avoid AuthenticatedRequest conflicts with Express Request
  */
 export function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+  fn: (req: any, res: any, next: any) => Promise<any>
 ): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req as any, res, next)).catch(next);
+    Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
