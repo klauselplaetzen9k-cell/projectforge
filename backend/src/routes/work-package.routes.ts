@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware';
@@ -21,7 +21,7 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Authent
   });
 
   res.json({ workPackages });
-}));
+}) as RequestHandler);
 
 // Create work package
 router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
@@ -57,7 +57,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
   });
 
   res.status(201).json({ workPackage });
-}));
+}) as RequestHandler);
 
 // Get single work package
 router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
@@ -93,7 +93,7 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
     : 0;
 
   res.json({ workPackage: { ...workPackage, progress } });
-}));
+}) as RequestHandler);
 
 // Update work package
 router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
@@ -119,7 +119,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
   });
 
   res.json({ workPackage });
-}));
+}) as RequestHandler);
 
 // Delete work package
 router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res) => {
@@ -128,6 +128,6 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
   });
 
   res.json({ message: 'Work package deleted successfully' });
-}));
+}) as RequestHandler);
 
 export default router;
