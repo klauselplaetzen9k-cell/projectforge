@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, Request, authorize } from '../middleware/auth.middleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();

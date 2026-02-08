@@ -1,5 +1,4 @@
-import { Router } from 'express';
-import { Request } from 'express';
+import { Prisma, UserRole } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate } from '../middleware/auth.middleware';
