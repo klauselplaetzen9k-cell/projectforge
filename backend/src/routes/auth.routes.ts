@@ -2,7 +2,7 @@
 // Authentication Routes
 // ============================================================================
 
-import { Router, Request } from 'express';
+import { Router, Request, RequestHandler } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import {

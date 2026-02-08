@@ -113,6 +113,19 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
   }
 }
 
+/**
+ * Verify any token (access or refresh) - tries access first, then refresh
+ */
+export function verifyToken(token: string): TokenPayload | null {
+  // First try access token verification
+  const accessPayload = verifyAccessToken(token);
+  if (accessPayload) {
+    return accessPayload;
+  }
+  // Then try refresh token verification
+  return verifyRefreshToken(token);
+}
+
 // ============================================================================
 // Session Functions
 // ============================================================================
