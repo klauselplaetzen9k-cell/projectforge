@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate, Request } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler, AppError } from '../middleware/error.middleware';
 
 const router = Router();
@@ -186,22 +186,8 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) =>
             orderBy: { dueDate: 'asc' },
           },
           workPackages: {
-            where: {
-              OR: [
-                { startDate: { gte: timeline.startDate } },
-                { dueDate: { lte: timeline.endDate } },
-                { startDate: { lte: timeline.endDate }, dueDate: { gte: timeline.startDate } },
-              ],
-            },
             include: {
               tasks: {
-                where: {
-                  OR: [
-                    { startDate: { gte: timeline.startDate } },
-                    { dueDate: { lte: timeline.endDate } },
-                    { startDate: { lte: timeline.endDate }, dueDate: { gte: timeline.startDate } },
-                  ],
-                },
                 select: { id: true, title: true, status: true, startDate: true, dueDate: true, assigneeId: true },
               },
             },
@@ -215,7 +201,33 @@ router.get('/:id/gantt', authenticate, asyncHandler(async (req: Request, res) =>
     throw new AppError('Timeline not found', 404);
   }
 
-  res.json({ timeline });
+  // Filter workPackages and tasks to those that overlap with timeline
+  const { startDate: tlStart, endDate: tlEnd } = timeline;
+  
+  const filteredWorkPackages = timeline.project.workPackages.filter(wp => {
+    if (!wp.startDate || !wp.dueDate) return false;
+    return wp.startDate <= tlEnd && wp.dueDate >= tlStart;
+  });
+
+  const filteredTasks = timeline.project.workPackages.flatMap(wp =>
+    wp.tasks
+      .filter(task => {
+        if (!task.startDate || !task.dueDate) return false;
+        return task.startDate <= tlEnd && task.dueDate >= tlStart;
+      })
+      .map(task => ({ ...task, workPackageId: wp.id }))
+  );
+
+  res.json({ 
+    timeline: {
+      ...timeline,
+      project: {
+        ...timeline.project,
+        workPackages: filteredWorkPackages,
+      },
+    },
+    tasks: filteredTasks,
+  });
 }));
 
 export default router;
