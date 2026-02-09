@@ -38,13 +38,16 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
     description: z.string().optional(),
     projectId: z.string(),
     workPackageId: z.string().optional(),
-    dueDate: z.date(),
+    dueDate: z.string().datetime(), // Accept ISO 8601 datetime string
   });
 
   const data = schema.parse(req.body);
 
   const milestone = await prisma.milestone.create({
-    data,
+    data: {
+      ...data,
+      dueDate: new Date(data.dueDate),
+    },
     include: {
       workPackage: { select: { id: true, name: true } },
     },
@@ -87,7 +90,7 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
-    dueDate: z.date().optional(),
+    dueDate: z.string().datetime().optional(),
     completed: z.boolean().optional(),
   });
 
@@ -96,9 +99,11 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const milestone = await prisma.milestone.update({
     where: { id: req.params.id },
     data: {
-      ...data,
+      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
       ...(data.completed && { completedAt: new Date() }),
       ...(!data.completed && { completedAt: null }),
+      ...(data.name && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
     },
     include: {
       workPackage: { select: { id: true, name: true } },

@@ -250,13 +250,13 @@ function MilestoneModal({ projectId, milestone, onClose, onSuccess }: MilestoneM
         await http.put(`/milestones/${milestone.id}`, {
           name: formData.name,
           description: formData.description,
-          dueDate: new Date(formData.dueDate),
+          dueDate: formData.dueDate, // Send as YYYY-MM-DD string
         });
       } else {
         await http.post('/milestones', {
           name: formData.name,
           description: formData.description,
-          dueDate: new Date(formData.dueDate),
+          dueDate: formData.dueDate, // Send as YYYY-MM-DD string
           projectId,
         });
       }

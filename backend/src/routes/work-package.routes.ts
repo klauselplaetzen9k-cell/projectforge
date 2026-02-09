@@ -32,8 +32,8 @@ router.post('/', authenticate, async (req: Request, res) => {
     parentId: z.string().optional(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'ARCHIVED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-    startDate: z.date().optional(),
-    dueDate: z.date().optional(),
+    startDate: z.string().datetime().optional(),
+    dueDate: z.string().datetime().optional(),
   });
 
   const data = schema.parse(req.body);
@@ -46,10 +46,15 @@ router.post('/', authenticate, async (req: Request, res) => {
 
   const workPackage = await prisma.workPackage.create({
     data: {
-      ...data,
+      name: data.name,
+      description: data.description,
+      projectId: data.projectId,
+      parentId: data.parentId,
       sortOrder: (lastWP?.sortOrder || 0) + 1,
       status: data.status || 'TODO',
       priority: data.priority || 'MEDIUM',
+      ...(data.startDate && { startDate: new Date(data.startDate) }),
+      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
     },
     include: {
       parent: { select: { id: true, name: true } },
