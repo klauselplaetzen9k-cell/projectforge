@@ -204,9 +204,6 @@ function TeamCard({ team }: TeamCardProps) {
         <button className="secondary-button" onClick={() => setShowMembers(!showMembers)}>
           {showMembers ? 'Hide Members' : 'Show Members'}
         </button>
-        <Link to={`/teams/${team.id}`} className="primary-button">
-          View Team
-        </Link>
       </div>
 
       {showMembers && (
