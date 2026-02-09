@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { http } from '../services/api';
+import MilestoneList from '../components/milestones/MilestoneList';
+import WorkPackageList from '../components/work-packages/WorkPackageList';
 
 // ============================================================================
 // Types
@@ -220,61 +222,13 @@ export default function ProjectDetailPage() {
 
       {activeTab === 'work-packages' && (
         <div className="work-packages-tab">
-          <div className="tab-header">
-            <h2>Work Packages</h2>
-            <button className="primary-button">Create Work Package</button>
-          </div>
-          {project.workPackages.length === 0 ? (
-            <div className="empty-state">
-              <h3>No work packages</h3>
-              <p>Create your first work package to organize tasks.</p>
-            </div>
-          ) : (
-            <div className="work-packages-list">
-              {project.workPackages.map(wp => (
-                <div key={wp.id} className="work-package-card">
-                  <div className="wp-info">
-                    <h3>{wp.name}</h3>
-                    <span className={`wp-priority ${getPriorityColor(wp.priority)}`}>{wp.priority}</span>
-                  </div>
-                  <div className="wp-meta">
-                    <span className={`wp-status ${wp.status.toLowerCase().replace('_', '-')}`}>{wp.status.replace('_', ' ')}</span>
-                    <span>{wp._count.tasks} tasks</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <WorkPackageList projectId={project.id} />
         </div>
       )}
 
       {activeTab === 'milestones' && (
         <div className="milestones-tab">
-          <div className="tab-header">
-            <h2>Milestones</h2>
-            <button className="primary-button">Create Milestone</button>
-          </div>
-          {project.milestones.length === 0 ? (
-            <div className="empty-state">
-              <h3>No milestones</h3>
-              <p>Create milestones to track important deadlines.</p>
-            </div>
-          ) : (
-            <div className="milestones-list">
-              {project.milestones.map(m => (
-                <div key={m.id} className={`milestone-card ${m.completed ? 'completed' : ''}`}>
-                  <div className="milestone-checkbox">
-                    <input type="checkbox" checked={m.completed} readOnly />
-                  </div>
-                  <div className="milestone-info">
-                    <h3>{m.name}</h3>
-                    <span className="milestone-date">Due: {new Date(m.dueDate).toLocaleDateString()}</span>
-                  </div>
-                  {m.completed && <span className="completed-badge">Completed</span>}
-                </div>
-              ))}
-            </div>
-          )}
+          <MilestoneList projectId={project.id} />
         </div>
       )}
 
