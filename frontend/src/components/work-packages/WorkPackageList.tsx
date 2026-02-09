@@ -41,6 +41,7 @@ interface WorkPackage {
   status: string;
   priority: string;
   sortOrder: number;
+  projectId: string;
   startDate?: string;
   dueDate?: string;
   parent?: { id: string; name: string };
@@ -446,7 +447,7 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: W
     setLoadingTasks(true);
     setShowTasks(true);
     try {
-      const { tasks: data } = await http.get(`/tasks?workPackageId=${workPackage.id}`);
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
       setTasks(data || []);
     } catch (err) {
       console.error('Failed to load tasks:', err);
@@ -464,12 +465,14 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: W
       await http.post('/tasks', {
         title: newTaskTitle,
         workPackageId: workPackage.id,
+        projectId: workPackage.projectId,
         status: 'TODO',
       });
       setNewTaskTitle('');
       loadTasks();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create task:', err);
+      alert(err.response?.data?.error || 'Failed to create task');
     } finally {
       setAddingTask(false);
     }

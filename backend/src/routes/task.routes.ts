@@ -22,6 +22,22 @@ router.get('/project/:projectId', authenticate, asyncHandler(async (req: Request
   res.json({ tasks });
 }));
 
+// Get tasks for a work package
+router.get('/work-package/:workPackageId', authenticate, asyncHandler(async (req: Request, res) => {
+  const tasks = await prisma.task.findMany({
+    where: { workPackageId: req.params.workPackageId },
+    include: {
+      assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+      workPackage: { select: { id: true, name: true } },
+      milestone: { select: { id: true, name: true } },
+      _count: { select: { comments: true, attachments: true } },
+    },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+  });
+
+  res.json({ tasks });
+}));
+
 // Get my tasks
 router.get('/my', authenticate, asyncHandler(async (req: Request, res) => {
   const { status, projectId } = req.query;

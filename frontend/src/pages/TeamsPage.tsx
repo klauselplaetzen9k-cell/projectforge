@@ -284,9 +284,10 @@ function TeamModal({ team, onClose, onSuccess }: TeamModalProps) {
     try {
       await http.delete(`/teams/${team.id}/members/${userId}`);
       onSuccess();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to remove member:', err);
-      alert('Failed to remove member');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to remove member';
+      alert(errorMsg);
     } finally {
       setRemovingMember(null);
     }

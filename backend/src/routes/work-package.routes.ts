@@ -20,7 +20,13 @@ router.get('/project/:projectId', authenticate, async (req: Request, res) => {
     orderBy: { sortOrder: 'asc' },
   });
 
-  res.json({ workPackages });
+  // Add projectId to each workPackage (TypeScript workaround)
+  const workPackagesWithProject = workPackages.map(wp => ({
+    ...wp,
+    projectId: req.params.projectId,
+  }));
+
+  res.json({ workPackages: workPackagesWithProject });
 });
 
 // Create work package
@@ -108,8 +114,8 @@ router.put('/:id', authenticate, async (req: Request, res) => {
     status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'ARCHIVED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     parentId: z.string().optional().nullable(),
-    startDate: z.date().optional().nullable(),
-    dueDate: z.date().optional().nullable(),
+    startDate: z.string().datetime().optional().nullable(),
+    dueDate: z.string().datetime().optional().nullable(),
     sortOrder: z.number().optional(),
   });
 
@@ -117,7 +123,11 @@ router.put('/:id', authenticate, async (req: Request, res) => {
 
   const workPackage = await prisma.workPackage.update({
     where: { id: req.params.id },
-    data,
+    data: {
+      ...data,
+      ...(data.startDate && { startDate: new Date(data.startDate) }),
+      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
+    },
     include: {
       parent: { select: { id: true, name: true } },
     },
