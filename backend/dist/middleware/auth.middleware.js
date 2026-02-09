@@ -3,6 +3,7 @@
 // Authentication Middleware
 // ============================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.authenticateToken = void 0;
 exports.authenticate = authenticate;
 exports.authorize = authorize;
 exports.optionalAuth = optionalAuth;
@@ -13,8 +14,6 @@ const prisma_1 = require("../lib/prisma");
  * Verifies JWT token from Authorization header
  */
 async function authenticate(req, res, next) {
-    // Alias for backwards compatibility
-    export const authenticateToken = authenticate;
     try {
         // Get authorization header
         const authHeader = req.headers.authorization;
@@ -108,4 +107,6 @@ async function optionalAuth(req, res, next) {
         next();
     }
 }
+// Alias for backwards compatibility
+exports.authenticateToken = authenticate;
 //# sourceMappingURL=auth.middleware.js.map

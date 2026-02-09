@@ -10,11 +10,6 @@ const router = (0, express_1.Router)();
 router.get('/project/:projectId', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const timelines = await prisma_1.prisma.timeline.findMany({
         where: { projectId: req.params.projectId },
-        include: {
-            events: {
-                orderBy: { startDate: 'asc' },
-            },
-        },
         orderBy: { isDefault: 'desc' },
     });
     res.json({ timelines });
@@ -38,9 +33,6 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
     }
     const timeline = await prisma_1.prisma.timeline.create({
         data,
-        include: {
-            events: true,
-        },
     });
     res.status(201).json({ timeline });
 }));
@@ -48,12 +40,6 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
 router.get('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const timeline = await prisma_1.prisma.timeline.findFirst({
         where: { id: req.params.id },
-        include: {
-            project: { select: { id: true, name: true } },
-            events: {
-                orderBy: { startDate: 'asc' },
-            },
-        },
     });
     if (!timeline) {
         throw new error_middleware_1.AppError('Timeline not found', 404);
@@ -88,9 +74,6 @@ router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
     const timeline = await prisma_1.prisma.timeline.update({
         where: { id: req.params.id },
         data,
-        include: {
-            events: true,
-        },
     });
     res.json({ timeline });
 }));
@@ -148,44 +131,34 @@ router.delete('/:id/events/:eventId', auth_middleware_1.authenticate, (0, error_
 router.get('/:id/gantt', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const timeline = await prisma_1.prisma.timeline.findFirst({
         where: { id: req.params.id },
-        include: {
-            events: {
-                orderBy: { startDate: 'asc' },
-            },
-            project: {
-                include: {
-                    milestones: {
-                        orderBy: { dueDate: 'asc' },
-                    },
-                    workPackages: {
-                        where: {
-                            OR: [
-                                { startDate: { gte: timeline.startDate } },
-                                { dueDate: { lte: timeline.endDate } },
-                                { startDate: { lte: timeline.endDate }, dueDate: { gte: timeline.startDate } },
-                            ],
-                        },
-                        include: {
-                            tasks: {
-                                where: {
-                                    OR: [
-                                        { startDate: { gte: timeline.startDate } },
-                                        { dueDate: { lte: timeline.endDate } },
-                                        { startDate: { lte: timeline.endDate }, dueDate: { gte: timeline.startDate } },
-                                    ],
-                                },
-                                select: { id: true, title: true, status: true, startDate: true, dueDate: true, assigneeId: true },
-                            },
-                        },
-                    },
-                },
-            },
-        },
     });
     if (!timeline) {
         throw new error_middleware_1.AppError('Timeline not found', 404);
     }
-    res.json({ timeline });
+    const events = await prisma_1.prisma.timelineEvent.findMany({
+        where: { timelineId: timeline.id },
+        orderBy: { startDate: 'asc' },
+    });
+    const milestones = await prisma_1.prisma.milestone.findMany({
+        where: { projectId: timeline.projectId },
+        orderBy: { dueDate: 'asc' },
+    });
+    const workPackages = await prisma_1.prisma.workPackage.findMany({
+        where: { projectId: timeline.projectId },
+    });
+    const tasks = await prisma_1.prisma.task.findMany({
+        where: {
+            projectId: timeline.projectId,
+            workPackageId: { in: workPackages.map(wp => wp.id) },
+        },
+    });
+    res.json({
+        timeline,
+        events,
+        milestones,
+        workPackages,
+        tasks,
+    });
 }));
 exports.default = router;
 //# sourceMappingURL=timeline.routes.js.map

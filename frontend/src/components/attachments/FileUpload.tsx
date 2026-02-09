@@ -6,34 +6,11 @@ interface FileUploadProps {
   onUploadComplete: () => void;
 }
 
-interface FileInfo {
-  name: string;
-  size: number;
-  type: string;
-}
-
 export const FileUpload: React.FC<FileUploadProps> = ({ taskId, onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileIcon = (type: string): string => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type === 'application/pdf') return '📄';
-    if (type.includes('word') || type.includes('document')) return '📝';
-    if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
-    if (type.includes('zip') || type.includes('compressed')) return '📦';
-    return '📎';
-  };
 
   const uploadFile = async (file: File) => {
     const formData = new FormData();

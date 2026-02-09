@@ -2,7 +2,7 @@
 // API Service
 // ============================================================================
 
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // ============================================================================
 // Configuration
@@ -11,7 +11,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 // Use relative path in production (nginx proxies /api), absolute URL in development
 const API_BASE_URL = import.meta.env.PROD 
   ? '' 
-  : import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
 
 // ============================================================================
 // API Client Creation
@@ -46,10 +46,14 @@ api.interceptors.request.use(
 // Response Interceptor
 // ============================================================================
 
+interface RetryConfig extends AxiosRequestConfig {
+  _retry?: boolean;
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as RetryConfig;
 
     // Handle 401 errors
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -59,9 +63,12 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const { token } = await api.post('/auth/refresh', { refreshToken });
+          const response = await api.post<{ token: string }>('/auth/refresh', { refreshToken });
+          const { token } = response.data;
           localStorage.setItem('auth_token', token);
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed, logout
@@ -86,19 +93,19 @@ api.interceptors.response.use(
 
 export const http = {
   get: <T = any>(url: string, config?: AxiosRequestConfig) =>
-    api.get<T>(url, config).then(res => res.data),
+    api.get<T>(url, config).then((res: AxiosResponse<T>) => res.data),
 
   post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
-    api.post<T>(url, data, config).then(res => res.data),
+    api.post<T>(url, data, config).then((res: AxiosResponse<T>) => res.data),
 
   put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
-    api.put<T>(url, data, config).then(res => res.data),
+    api.put<T>(url, data, config).then((res: AxiosResponse<T>) => res.data),
 
   patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
-    api.patch<T>(url, data, config).then(res => res.data),
+    api.patch<T>(url, data, config).then((res: AxiosResponse<T>) => res.data),
 
   delete: <T = any>(url: string, config?: AxiosRequestConfig) =>
-    api.delete<T>(url, config).then(res => res.data),
+    api.delete<T>(url, config).then((res: AxiosResponse<T>) => res.data),
 };
 
 // ============================================================================

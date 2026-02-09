@@ -7,7 +7,7 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const error_middleware_1 = require("../middleware/error.middleware");
 const router = (0, express_1.Router)();
 // Get work packages for a project
-router.get('/project/:projectId', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get('/project/:projectId', auth_middleware_1.authenticate, async (req, res) => {
     const workPackages = await prisma_1.prisma.workPackage.findMany({
         where: { projectId: req.params.projectId },
         include: {
@@ -20,9 +20,9 @@ router.get('/project/:projectId', auth_middleware_1.authenticate, (0, error_midd
         orderBy: { sortOrder: 'asc' },
     });
     res.json({ workPackages });
-}));
+});
 // Create work package
-router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.post('/', auth_middleware_1.authenticate, async (req, res) => {
     const schema = zod_1.z.object({
         name: zod_1.z.string().min(1).max(200),
         description: zod_1.z.string().optional(),
@@ -51,9 +51,9 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
         },
     });
     res.status(201).json({ workPackage });
-}));
+});
 // Get single work package
-router.get('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticate, async (req, res) => {
     const workPackage = await prisma_1.prisma.workPackage.findFirst({
         where: { id: req.params.id },
         include: {
@@ -83,9 +83,9 @@ router.get('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
         ? Math.round((completedTasks / workPackage.tasks.length) * 100)
         : 0;
     res.json({ workPackage: { ...workPackage, progress } });
-}));
+});
 // Update work package
-router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticate, async (req, res) => {
     const schema = zod_1.z.object({
         name: zod_1.z.string().min(1).max(200).optional(),
         description: zod_1.z.string().optional().nullable(),
@@ -105,13 +105,13 @@ router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
         },
     });
     res.json({ workPackage });
-}));
+});
 // Delete work package
-router.delete('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticate, async (req, res) => {
     await prisma_1.prisma.workPackage.delete({
         where: { id: req.params.id },
     });
     res.json({ message: 'Work package deleted successfully' });
-}));
+});
 exports.default = router;
 //# sourceMappingURL=work-package.routes.js.map

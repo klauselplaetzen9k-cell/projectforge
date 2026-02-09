@@ -34,7 +34,7 @@ export default function SettingsPage() {
       await updateProfile(profileData);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error: any) {
-      setMessage({ type: 'error', error: error.response?.data?.error || 'Failed to update profile' });
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' });
     } finally {
       setLoading(false);
     }
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                 type="password"
                 id="newPassword"
                 value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...profileData, newPassword: e.target.value })}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                 required
                 minLength={8}
               />

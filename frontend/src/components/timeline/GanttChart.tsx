@@ -49,7 +49,10 @@ export default function GanttChart({ projectId }: GanttChartProps) {
   const [loading, setLoading] = useState(true);
   const [selectedTimelineId, setSelectedTimelineId] = useState<string | null>(null);
   const [zoom, setZoom] = useState<'week' | 'month' | 'quarter'>('month');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalState, setCreateModalState] = useState(false);
+
+  const openCreateModal = () => setCreateModalState(true);
+  const closeCreateModal = () => setCreateModalState(false);
 
   useEffect(() => {
     fetchData();
@@ -163,7 +166,7 @@ export default function GanttChart({ projectId }: GanttChartProps) {
               onClick={() => setZoom('quarter')}
             >Quarter</button>
           </div>
-          <button className="primary-button" onClick={() => setShowCreateModal(true)}>
+          <button className="primary-button" onClick={() => openCreateModal()}>
             + Timeline Event
           </button>
         </div>
@@ -172,7 +175,7 @@ export default function GanttChart({ projectId }: GanttChartProps) {
       {timelines.length === 0 ? (
         <div className="empty-gantt">
           <p>No timelines created yet.</p>
-          <button className="secondary-button" onClick={() => setShowCreateModal(true)}>
+          <button className="secondary-button" onClick={() => openCreateModal()}>
             Create Your First Timeline
           </button>
         </div>

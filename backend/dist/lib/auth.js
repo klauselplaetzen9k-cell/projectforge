@@ -13,6 +13,7 @@ exports.generateRefreshToken = generateRefreshToken;
 exports.generateTokenPair = generateTokenPair;
 exports.verifyAccessToken = verifyAccessToken;
 exports.verifyRefreshToken = verifyRefreshToken;
+exports.verifyToken = verifyToken;
 exports.createUserSession = createUserSession;
 exports.invalidateSession = invalidateSession;
 exports.invalidateAllUserSessions = invalidateAllUserSessions;
@@ -102,21 +103,32 @@ function verifyRefreshToken(token) {
         return null;
     }
 }
+/**
+ * Verify any token (access or refresh) - tries access first, then refresh
+ */
+function verifyToken(token) {
+    // First try access token verification
+    const accessPayload = verifyAccessToken(token);
+    if (accessPayload) {
+        return accessPayload;
+    }
+    // Then try refresh token verification
+    return verifyRefreshToken(token);
+}
 // ============================================================================
 // Session Functions
 // ============================================================================
 /**
  * Create a new user session with refresh token
  */
-async function createUserSession(userId, refreshToken, ipAddress, userAgent, accessToken) {
+async function createUserSession(userId, refreshToken, ipAddress, userAgent) {
     const expiresAt = new Date();
     // Refresh token expires in 30 days
     expiresAt.setDate(expiresAt.getDate() + 30);
     return prisma_1.prisma.userSession.create({
         data: {
             userId,
-            token: refreshToken, // Store refresh token
-            accessToken, // Optional: store access token for immediate invalidation
+            token: refreshToken,
             expiresAt,
             ipAddress,
             userAgent,

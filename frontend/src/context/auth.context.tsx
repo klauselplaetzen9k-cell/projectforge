@@ -18,6 +18,11 @@ export interface User {
   role: string;
 }
 
+interface AuthResponse {
+  user: User;
+  token: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -68,7 +73,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const token = localStorage.getItem('auth_token');
       if (token) {
         try {
-          const { user } = await api.get('/auth/me');
+          const response = await api.get<{ user: User }>('/auth/me');
+          const { user } = response.data;
           setState({
             user,
             isAuthenticated: true,
@@ -94,7 +100,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Login
   const login = useCallback(async (email: string, password: string) => {
-    const { user, token } = await api.post('/auth/login', { email, password });
+    const response = await api.post<AuthResponse>('/auth/login', { email, password });
+    const { user, token } = response.data;
     localStorage.setItem('auth_token', token);
     setState({
       user,
@@ -106,7 +113,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Register
   const register = useCallback(async (data: RegisterData) => {
-    const { user, token } = await api.post('/auth/register', data);
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    const { user, token } = response.data;
     localStorage.setItem('auth_token', token);
     setState({
       user,
@@ -134,14 +142,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Update profile
   const updateProfile = useCallback(async (data: Partial<User>) => {
-    const { user } = await api.put('/users/profile', data);
+    const response = await api.put<{ user: User }>('/users/profile', data);
+    const { user } = response.data;
     setState(prev => ({ ...prev, user }));
   }, []);
 
   // Refresh user data
   const refreshUser = useCallback(async () => {
     try {
-      const { user } = await api.get('/auth/me');
+      const response = await api.get<{ user: User }>('/auth/me');
+      const { user } = response.data;
       setState(prev => ({ ...prev, user }));
     } catch (error) {
       console.error('Failed to refresh user:', error);

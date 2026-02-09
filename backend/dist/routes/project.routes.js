@@ -53,10 +53,15 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
     if (existingProject) {
         throw new error_middleware_1.AppError('Project key already exists in this team', 409);
     }
+    // Generate slug from project name
+    const slug = data.name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
     const project = await prisma_1.prisma.project.create({
         data: {
             name: data.name,
             description: data.description,
+            slug: slug,
             key: data.key,
             color: data.color || '#6366f1',
             teamId: data.teamId,

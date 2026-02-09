@@ -47,7 +47,7 @@ interface Team {
 // ============================================================================
 
 export default function TeamsPage() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -148,7 +148,7 @@ interface TeamCardProps {
   onUpdate: () => void;
 }
 
-function TeamCard({ team, onUpdate }: TeamCardProps) {
+function TeamCard({ team }: TeamCardProps) {
   const [showMembers, setShowMembers] = useState(false);
 
   const memberCount = team.members.length;
@@ -184,7 +184,7 @@ function TeamCard({ team, onUpdate }: TeamCardProps) {
       </div>
 
       <div className="team-members-preview">
-        {team.members.slice(0, 5).map((member, index) => (
+        {team.members.slice(0, 5).map((member) => (
           <div key={member.user.id} className="member-avatar" title={`${member.user.firstName} ${member.user.lastName}`}>
             {member.user.avatarUrl ? (
               <img src={member.user.avatarUrl} alt={member.user.firstName} />

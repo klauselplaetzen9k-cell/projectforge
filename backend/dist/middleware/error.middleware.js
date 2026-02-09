@@ -104,6 +104,7 @@ async function errorHandler(err, req, res, next) {
 /**
  * Async handler wrapper
  * Wraps async route handlers to catch errors
+ * Uses any types to avoid AuthenticatedRequest conflicts with Express Request
  */
 function asyncHandler(fn) {
     return (req, res, next) => {

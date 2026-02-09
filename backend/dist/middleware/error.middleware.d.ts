@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 export declare class AppError extends Error {
     statusCode: number;
     isOperational: boolean;
@@ -12,6 +12,7 @@ export declare function errorHandler(err: Error, req: Request, res: Response, ne
 /**
  * Async handler wrapper
  * Wraps async route handlers to catch errors
+ * Uses any types to avoid AuthenticatedRequest conflicts with Express Request
  */
-export declare function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>): (req: Request, res: Response, next: NextFunction) => void;
+export declare function asyncHandler(fn: (req: any, res: any, next: any) => Promise<any>): RequestHandler;
 //# sourceMappingURL=error.middleware.d.ts.map

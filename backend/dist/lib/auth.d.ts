@@ -37,9 +37,13 @@ export declare function verifyAccessToken(token: string): TokenPayload | null;
  */
 export declare function verifyRefreshToken(token: string): TokenPayload | null;
 /**
+ * Verify any token (access or refresh) - tries access first, then refresh
+ */
+export declare function verifyToken(token: string): TokenPayload | null;
+/**
  * Create a new user session with refresh token
  */
-export declare function createUserSession(userId: string, refreshToken: string, ipAddress?: string, userAgent?: string, accessToken?: string): Promise<{
+export declare function createUserSession(userId: string, refreshToken: string, ipAddress?: string, userAgent?: string): Promise<{
     id: string;
     token: string;
     expiresAt: Date;

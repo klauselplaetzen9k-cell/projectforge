@@ -54,7 +54,7 @@ export default function TaskDetailModal({ taskId, onClose, onUpdate }: TaskDetai
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'attachments' | 'dependencies'>('details');
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [editModalState, setEditModalState] = useState(false);
 
   useEffect(() => {
     fetchTask();

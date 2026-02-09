@@ -6,6 +6,31 @@ import { useState, useEffect } from 'react';
 import { http } from '../../services/api';
 
 // ============================================================================
+// Helper Functions (defined outside component for use by child components)
+// ============================================================================
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case 'TODO': return 'status-todo';
+    case 'IN_PROGRESS': return 'status-in-progress';
+    case 'REVIEW': return 'status-review';
+    case 'DONE': return 'status-done';
+    case 'ARCHIVED': return 'status-archived';
+    default: return '';
+  }
+}
+
+function getPriorityIcon(priority: string): string {
+  switch (priority) {
+    case 'URGENT': return '🔴';
+    case 'HIGH': return '🟠';
+    case 'MEDIUM': return '🟡';
+    case 'LOW': return '🟢';
+    default: return '⚪';
+  }
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -145,9 +170,9 @@ interface WorkPackageItemProps {
   onUpdate: () => void;
 }
 
-function WorkPackageItem({ workPackage, onSelect, onUpdate }: WorkPackageItemProps) {
+function WorkPackageItem({ workPackage, onSelect }: WorkPackageItemProps) {
   const [expanded, setExpanded] = useState(true);
-  const [showChildren, setShowChildren] = useState(false);
+  const [childrenState, setChildrenState] = useState(false);
 
   const hasChildren = workPackage._count.children > 0;
   const completedTasks = workPackage.tasks.filter(t => t.status === 'DONE').length;

@@ -23,12 +23,18 @@ router.get('/project/:projectId', auth_middleware_1.authenticate, (0, error_midd
 // Get my tasks
 router.get('/my', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { status, projectId } = req.query;
+    // Build where clause with proper types
+    const where = {
+        assigneeId: req.user.userId,
+    };
+    if (status && typeof status === 'string') {
+        where.status = status;
+    }
+    if (projectId && typeof projectId === 'string') {
+        where.projectId = projectId;
+    }
     const tasks = await prisma_1.prisma.task.findMany({
-        where: {
-            assigneeId: req.user.userId,
-            ...(status && { status: status }),
-            ...(projectId && { projectId: projectId }),
-        },
+        where,
         include: {
             project: { select: { id: true, name: true, key: true } },
             workPackage: { select: { id: true, name: true } },
@@ -49,12 +55,18 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
         milestoneId: zod_1.z.string().optional(),
         assigneeId: zod_1.z.string().optional(),
         priority: zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-        status: zod_1.z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
+        estimatedHours: zod_1.z.number().positive().optional(),
         startDate: zod_1.z.date().optional(),
         dueDate: zod_1.z.date().optional(),
-        estimatedHours: zod_1.z.number().positive().optional(),
     });
     const data = schema.parse(req.body);
+    // Check project membership
+    const projectMember = await prisma_1.prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId: data.projectId, userId: req.user.userId } },
+    });
+    if (!projectMember) {
+        throw new error_middleware_1.AppError('You are not a member of this project', 403);
+    }
     // Get next sort order
     const lastTask = await prisma_1.prisma.task.findFirst({
         where: { projectId: data.projectId },
@@ -62,11 +74,18 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
     });
     const task = await prisma_1.prisma.task.create({
         data: {
-            ...data,
+            title: data.title,
+            description: data.description,
+            projectId: data.projectId,
+            workPackageId: data.workPackageId,
+            milestoneId: data.milestoneId,
+            assigneeId: data.assigneeId,
             creatorId: req.user.userId,
-            sortOrder: (lastTask?.sortOrder || 0) + 1,
-            status: data.status || 'TODO',
             priority: data.priority || 'MEDIUM',
+            estimatedHours: data.estimatedHours,
+            startDate: data.startDate,
+            dueDate: data.dueDate,
+            sortOrder: (lastTask?.sortOrder || 0) + 1,
         },
         include: {
             assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
@@ -78,41 +97,25 @@ router.post('/', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHan
     await prisma_1.prisma.activity.create({
         data: {
             action: 'TASK_CREATED',
-            entityType: 'task',
+            entityType: 'Task',
             entityId: task.id,
             userId: req.user.userId,
             projectId: task.projectId,
-            metadata: { taskTitle: task.title },
+            taskId: task.id,
         },
     });
-    // Create notification for assignee
-    if (data.assigneeId && data.assigneeId !== req.user.userId) {
-        await prisma_1.prisma.notification.create({
-            data: {
-                userId: data.assigneeId,
-                title: 'New task assigned',
-                message: `You have been assigned to: ${task.title}`,
-                link: `/projects/${task.projectId}/tasks/${task.id}`,
-            },
-        });
-    }
     res.status(201).json({ task });
 }));
 // Get single task
 router.get('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const task = await prisma_1.prisma.task.findFirst({
-        where: {
-            id: req.params.id,
-            project: {
-                members: { some: { userId: req.user.userId } },
-            },
-        },
+        where: { id: req.params.id },
         include: {
-            assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
-            creator: { select: { id: true, firstName: true, lastName: true, email: true } },
-            workPackage: true,
-            milestone: true,
             project: { select: { id: true, name: true, key: true } },
+            workPackage: { select: { id: true, name: true } },
+            milestone: { select: { id: true, name: true, dueDate: true } },
+            assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+            creator: { select: { id: true, firstName: true, lastName: true } },
             comments: {
                 include: {
                     user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
@@ -122,16 +125,12 @@ router.get('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
             attachments: true,
             dependencies: {
                 include: {
-                    dependsOnTask: {
-                        select: { id: true, title: true, status: true },
-                    },
+                    dependsOnTask: { select: { id: true, title: true, status: true } },
                 },
             },
             dependents: {
                 include: {
-                    task: {
-                        select: { id: true, title: true, status: true },
-                    },
+                    task: { select: { id: true, title: true, status: true } },
                 },
             },
         },
@@ -149,11 +148,10 @@ router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
         status: zod_1.z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
         priority: zod_1.z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
         assigneeId: zod_1.z.string().optional().nullable(),
-        workPackageId: zod_1.z.string().optional().nullable(),
-        milestoneId: zod_1.z.string().optional().nullable(),
+        estimatedHours: zod_1.z.number().positive().optional().nullable(),
+        loggedHours: zod_1.z.number().min(0).optional(),
         startDate: zod_1.z.date().optional().nullable(),
         dueDate: zod_1.z.date().optional().nullable(),
-        estimatedHours: zod_1.z.number().positive().optional().nullable(),
         sortOrder: zod_1.z.number().optional(),
     });
     const data = schema.parse(req.body);
@@ -167,7 +165,7 @@ router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
         where: { id: req.params.id },
         data: {
             ...data,
-            ...(data.status === 'DONE' && { completedAt: new Date() }),
+            ...(data.status === 'DONE' && !existingTask.completedAt && { completedAt: new Date() }),
         },
         include: {
             assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
@@ -175,220 +173,86 @@ router.put('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncH
             milestone: { select: { id: true, name: true } },
         },
     });
-    // Determine activity type
-    if (existingTask.assigneeId !== data.assigneeId && data.assigneeId) {
-        await prisma_1.prisma.activity.create({
-            data: {
-                action: 'TASK_ASSIGNED',
-                entityType: 'task',
-                entityId: task.id,
-                userId: req.user.userId,
-                projectId: task.projectId,
-                metadata: { taskTitle: task.title, assigneeId: data.assigneeId },
-            },
-        });
-        if (data.assigneeId !== req.user.userId) {
-            await prisma_1.prisma.notification.create({
-                data: {
-                    userId: data.assigneeId,
-                    title: 'Task assigned to you',
-                    message: `You have been assigned to: ${task.title}`,
-                    link: `/projects/${task.projectId}/tasks/${task.id}`,
-                },
-            });
-        }
+    // Log activity
+    await prisma_1.prisma.activity.create({
+        data: {
+            action: 'TASK_UPDATED',
+            entityType: 'Task',
+            entityId: task.id,
+            userId: req.user.userId,
+            projectId: task.projectId,
+            taskId: task.id,
+        },
+    });
+    res.json({ task });
+}));
+// Reorder tasks
+router.put('/reorder', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const schema = zod_1.z.object({
+        projectId: zod_1.z.string(),
+        taskUpdates: zod_1.z.array(zod_1.z.object({
+            id: zod_1.z.string(),
+            sortOrder: zod_1.z.number(),
+            status: zod_1.z.enum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED']).optional(),
+        })),
+    });
+    const { projectId, taskUpdates } = schema.parse(req.body);
+    // Check project membership
+    const projectMember = await prisma_1.prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: req.user.userId } },
+    });
+    if (!projectMember) {
+        throw new error_middleware_1.AppError('You are not a member of this project', 403);
     }
-    if (data.status === 'DONE' && existingTask.status !== 'DONE') {
-        await prisma_1.prisma.activity.create({
-            data: {
-                action: 'TASK_COMPLETED',
-                entityType: 'task',
-                entityId: task.id,
-                userId: req.user.userId,
-                projectId: task.projectId,
-                metadata: { taskTitle: task.title },
-            },
-        });
-    }
+    // Update all tasks
+    await prisma_1.prisma.$transaction(taskUpdates.map(update => prisma_1.prisma.task.update({
+        where: { id: update.id },
+        data: {
+            sortOrder: update.sortOrder,
+            ...(update.status && { status: update.status }),
+        },
+    })));
+    res.json({ message: 'Tasks reordered successfully' });
+}));
+// Assign task
+router.put('/:id/assign', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const schema = zod_1.z.object({
+        assigneeId: zod_1.z.string().nullable(),
+    });
+    const { assigneeId } = schema.parse(req.body);
+    const task = await prisma_1.prisma.task.update({
+        where: { id: req.params.id },
+        data: { assigneeId },
+        include: {
+            assignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+        },
+    });
+    // Log activity
+    await prisma_1.prisma.activity.create({
+        data: {
+            action: 'TASK_ASSIGNED',
+            entityType: 'Task',
+            entityId: task.id,
+            userId: req.user.userId,
+            projectId: task.projectId,
+            taskId: task.id,
+            metadata: { assigneeId },
+        },
+    });
     res.json({ task });
 }));
 // Delete task
 router.delete('/:id', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const task = await prisma_1.prisma.task.findUnique({
+        where: { id: req.params.id },
+    });
+    if (!task) {
+        throw new error_middleware_1.AppError('Task not found', 404);
+    }
     await prisma_1.prisma.task.delete({
         where: { id: req.params.id },
     });
     res.json({ message: 'Task deleted successfully' });
-}));
-// Add comment
-router.post('/:id/comments', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const schema = zod_1.z.object({
-        content: zod_1.z.string().min(1),
-    });
-    const data = schema.parse(req.body);
-    const task = await prisma_1.prisma.task.findUnique({
-        where: { id: req.params.id },
-        select: { id: true, title: true, projectId: true, assigneeId: true },
-    });
-    if (!task) {
-        throw new error_middleware_1.AppError('Task not found', 404);
-    }
-    const comment = await prisma_1.prisma.comment.create({
-        data: {
-            content: data.content,
-            taskId: req.params.id,
-            userId: req.user.userId,
-        },
-        include: {
-            user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
-        },
-    });
-    // Notify assignee if different from commenter
-    if (task.assigneeId && task.assigneeId !== req.user.userId) {
-        await prisma_1.prisma.notification.create({
-            data: {
-                userId: task.assigneeId,
-                title: 'New comment',
-                message: `New comment on: ${task.title}`,
-                link: `/projects/${task.projectId}/tasks/${task.id}`,
-            },
-        });
-    }
-    res.status(201).json({ comment });
-}));
-// Log time
-router.post('/:id/log-time', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const schema = zod_1.z.object({
-        hours: zod_1.z.number().positive(),
-        description: zod_1.z.string().optional(),
-    });
-    const data = schema.parse(req.body);
-    const task = await prisma_1.prisma.task.update({
-        where: { id: req.params.id },
-        data: {
-            loggedHours: { increment: data.hours },
-        },
-    });
-    res.json({ task, loggedHours: task.loggedHours });
-}));
-// ============================================================================
-// Task Dependencies
-// ============================================================================
-// Get task dependencies
-router.get('/:id/dependencies', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const task = await prisma_1.prisma.task.findFirst({
-        where: {
-            id: req.params.id,
-            project: {
-                members: { some: { userId: req.user.userId } },
-            },
-        },
-        include: {
-            dependencies: {
-                include: {
-                    dependsOnTask: {
-                        select: {
-                            id: true,
-                            title: true,
-                            status: true,
-                            assignee: { select: { id: true, firstName: true, lastName: true } },
-                        },
-                    },
-                },
-            },
-            dependents: {
-                include: {
-                    task: {
-                        select: {
-                            id: true,
-                            title: true,
-                            status: true,
-                            assignee: { select: { id: true, firstName: true, lastName: true } },
-                        },
-                    },
-                },
-            },
-        },
-    });
-    if (!task) {
-        throw new error_middleware_1.AppError('Task not found', 404);
-    }
-    res.json({
-        blocks: task.dependencies, // Tasks this task is blocked by
-        blockedBy: task.dependents, // Tasks blocked by this task
-    });
-}));
-// Add dependency (this task depends on another task)
-router.post('/:id/dependencies', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const schema = zod_1.z.object({
-        dependsOnTaskId: zod_1.z.string(),
-    });
-    const data = schema.parse(req.body);
-    // Check if task exists
-    const task = await prisma_1.prisma.task.findFirst({
-        where: {
-            id: req.params.id,
-            project: {
-                members: { some: { userId: req.user.userId } },
-            },
-        },
-    });
-    if (!task) {
-        throw new error_middleware_1.AppError('Task not found', 404);
-    }
-    // Check if dependency task exists in same project
-    const dependencyTask = await prisma_1.prisma.task.findFirst({
-        where: {
-            id: data.dependsOnTaskId,
-            projectId: task.projectId,
-        },
-    });
-    if (!dependencyTask) {
-        throw new error_middleware_1.AppError('Dependency task not found or not in same project', 404);
-    }
-    // Check for circular dependency
-    const existingDependencies = await prisma_1.prisma.taskDependency.findMany({
-        where: { taskId: data.dependsOnTaskId },
-    });
-    const dependencyIds = existingDependencies.map(d => d.dependsOnTaskId);
-    if (dependencyIds.includes(req.params.id)) {
-        throw new error_middleware_1.AppError('Cannot create circular dependency', 400);
-    }
-    // Check if dependency already exists
-    const existing = await prisma_1.prisma.taskDependency.findUnique({
-        where: {
-            taskId_dependsOnTaskId: {
-                taskId: req.params.id,
-                dependsOnTaskId: data.dependsOnTaskId,
-            },
-        },
-    });
-    if (existing) {
-        throw new error_middleware_1.AppError('Dependency already exists', 409);
-    }
-    const dependency = await prisma_1.prisma.taskDependency.create({
-        data: {
-            taskId: req.params.id,
-            dependsOnTaskId: data.dependsOnTaskId,
-        },
-        include: {
-            dependsOnTask: {
-                select: { id: true, title: true, status: true },
-            },
-        },
-    });
-    res.status(201).json({ dependency });
-}));
-// Remove dependency
-router.delete('/:id/dependencies/:dependsOnTaskId', auth_middleware_1.authenticate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    await prisma_1.prisma.taskDependency.delete({
-        where: {
-            taskId_dependsOnTaskId: {
-                taskId: req.params.id,
-                dependsOnTaskId: req.params.dependsOnTaskId,
-            },
-        },
-    });
-    res.json({ message: 'Dependency removed successfully' });
 }));
 exports.default = router;
 //# sourceMappingURL=task.routes.js.map

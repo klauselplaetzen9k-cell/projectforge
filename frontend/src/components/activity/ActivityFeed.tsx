@@ -3,7 +3,6 @@
 // ============================================================================
 
 import { useState, useEffect } from 'react';
-import { http } from '../../services/api';
 
 // ============================================================================
 // Types
@@ -39,7 +38,7 @@ interface ActivityFeedProps {
 // Activity Feed Component
 // ============================================================================
 
-export default function ActivityFeed({ projectId, limit = 50 }: ActivityFeedProps) {
+export default function ActivityFeed({ projectId = '' }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');

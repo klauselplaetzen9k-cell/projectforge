@@ -141,7 +141,7 @@ router.put('/change-password', auth_middleware_1.authenticate, (0, error_middlew
     if (!user || !user.passwordHash) {
         throw new error_middleware_1.AppError('Cannot change password for OAuth users', 400);
     }
-    const { verifyPassword } = await import('../lib/auth');
+    const { verifyPassword } = await import('../lib/auth.js');
     const validPassword = await verifyPassword(data.currentPassword, user.passwordHash);
     if (!validPassword) {
         throw new error_middleware_1.AppError('Current password is incorrect', 401);

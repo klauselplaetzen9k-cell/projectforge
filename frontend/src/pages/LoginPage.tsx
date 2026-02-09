@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/auth.context';
 import ThemeToggle from '../context/ThemeContext';
 

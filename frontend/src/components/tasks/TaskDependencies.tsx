@@ -39,7 +39,7 @@ export default function TaskDependencies({ taskId, onClose }: TaskDependenciesPr
   const [blockedBy, setBlockedBy] = useState<Dependency[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [availableTasks, setAvailableTasks] = useState<any[]>([]);
+  const [localTasks, setLocalTasks] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDependencies();

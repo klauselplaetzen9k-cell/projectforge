@@ -48,7 +48,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<MyTask[]>([]);
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectsState, setProjectsState] = useState<ProjectSummary[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     myTasks: 0,
     overdueTasks: 0,

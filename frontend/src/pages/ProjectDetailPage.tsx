@@ -2,7 +2,7 @@
 // Project Detail Page
 // ============================================================================
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { http } from '../services/api';
 

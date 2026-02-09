@@ -62,7 +62,7 @@ router.post('/register', (0, error_middleware_1.asyncHandler)(async (req, res) =
         role: user.role,
     });
     // Create session
-    await (0, auth_1.createUserSession)(user.id, tokens.refreshToken, req.ip, req.get('user-agent'), tokens.accessToken);
+    await (0, auth_1.createUserSession)(user.id, tokens.refreshToken, req.ip, req.get('user-agent'));
     res.status(201).json({
         message: 'Registration successful',
         user,
@@ -98,7 +98,7 @@ router.post('/login', (0, error_middleware_1.asyncHandler)(async (req, res) => {
         role: user.role,
     });
     // Create session
-    await (0, auth_1.createUserSession)(user.id, tokens.refreshToken, req.ip, req.get('user-agent'), tokens.accessToken);
+    await (0, auth_1.createUserSession)(user.id, tokens.refreshToken, req.ip, req.get('user-agent'));
     res.json({
         message: 'Login successful',
         user: {
@@ -139,7 +139,6 @@ router.post('/refresh', (0, error_middleware_1.asyncHandler)(async (req, res) =>
         where: { id: session.id },
         data: {
             token: tokens.refreshToken,
-            accessToken: tokens.accessToken,
             expiresAt,
         },
     });
