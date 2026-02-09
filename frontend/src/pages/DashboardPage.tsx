@@ -159,7 +159,7 @@ export default function DashboardPage() {
         <div className="dashboard-section tasks-section">
           <div className="section-header">
             <h2>📋 My Tasks</h2>
-            <Link to="/tasks" className="view-all-link">View All</Link>
+            <Link to="/projects" className="view-all-link">View All</Link>
           </div>
           
           {tasks.length === 0 ? (
