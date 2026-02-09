@@ -56,6 +56,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryConfig;
 
+    // Handle 429 errors - rate limiting
+    if (error.response?.status === 429) {
+      console.warn('Rate limited, retrying...');
+      return Promise.reject(new Error('Rate limited'));
+    }
+
     // Handle 401 errors - only retry if not already retried and not the refresh endpoint
     if (
       error.response?.status === 401 &&
@@ -101,6 +107,7 @@ api.interceptors.response.use(
         // No refresh token, logout
         localStorage.removeItem('auth_token');
         window.location.href = '/login';
+        return Promise.reject(new Error('No refresh token'));
       }
     }
 
