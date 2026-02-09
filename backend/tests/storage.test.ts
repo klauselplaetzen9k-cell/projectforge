@@ -99,10 +99,10 @@ describe('LocalStorageService', () => {
 
       const files = await storageService.listFiles();
       
+      // Files are saved with unique names (timestamp-random.ext)
       expect(files.length).toBe(3);
-      expect(files).toContain('file1.txt');
-      expect(files).toContain('file2.txt');
-      expect(files).toContain('file3.txt');
+      // Check files end with expected extensions
+      expect(files.every(f => f.endsWith('.txt'))).toBe(true);
     });
 
     it('should return empty array for empty directory', async () => {

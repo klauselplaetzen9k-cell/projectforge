@@ -140,7 +140,10 @@ describe('Truncation Helpers', () => {
   });
 
   it('should truncate long text', () => {
-    expect(truncateText('This is a very long text', 10)).toBe('This is a ...');
+    // maxLength=10 means 7 chars + '...' = 10 total
+    expect(truncateText('This is a very long text', 10)).toBe('This is...');
+    // maxLength=14 means 11 chars + '...' = 14 total
+    expect(truncateText('This is a very long text', 14)).toBe('This is a v...');
   });
 
   it('should handle exact max length', () => {
