@@ -439,11 +439,6 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: W
   const [addingTask, setAddingTask] = useState(false);
 
   const loadTasks = async () => {
-    if (tasks.length > 0) {
-      setShowTasks(!showTasks);
-      return;
-    }
-    
     setLoadingTasks(true);
     setShowTasks(true);
     try {
@@ -469,12 +464,69 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: W
         status: 'TODO',
       });
       setNewTaskTitle('');
-      loadTasks();
+      // Always refresh tasks after creating
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
+      setTasks(data || []);
+      setShowTasks(true);
     } catch (err: any) {
       console.error('Failed to create task:', err);
       alert(err.response?.data?.error || 'Failed to create task');
     } finally {
       setAddingTask(false);
+    }
+  };
+
+  const handleToggleTaskStatus = async (task: any) => {
+    const newStatus = task.status === 'DONE' ? 'TODO' : 'DONE';
+    try {
+      await http.put(`/tasks/${task.id}`, { status: newStatus });
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
+      setTasks(data || []);
+    } catch (err: any) {
+      console.error('Failed to update task:', err);
+      alert(err.response?.data?.error || 'Failed to update task');
+    }
+  };
+
+  const handleAssignTask = async (task: any) => {
+    // Simple prompt for demo - in production, use a modal with user list
+    const userId = prompt('Enter user ID to assign (or leave empty to unassign):');
+    if (userId === null) return; // Cancelled
+    
+    try {
+      await http.put(`/tasks/${task.id}`, { assigneeId: userId || null });
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
+      setTasks(data || []);
+    } catch (err: any) {
+      console.error('Failed to assign task:', err);
+      alert(err.response?.data?.error || 'Failed to assign task');
+    }
+  };
+
+  const handleEditTask = async (task: any) => {
+    const newTitle = prompt('Edit task title:', task.title);
+    if (newTitle === null || newTitle.trim() === task.title) return;
+    
+    try {
+      await http.put(`/tasks/${task.id}`, { title: newTitle.trim() });
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
+      setTasks(data || []);
+    } catch (err: any) {
+      console.error('Failed to edit task:', err);
+      alert(err.response?.data?.error || 'Failed to edit task');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('Delete this task?')) return;
+    
+    try {
+      await http.delete(`/tasks/${taskId}`);
+      const { tasks: data } = await http.get(`/tasks/work-package/${workPackage.id}`);
+      setTasks(data || []);
+    } catch (err: any) {
+      console.error('Failed to delete task:', err);
+      alert(err.response?.data?.error || 'Failed to delete task');
     }
   };
 
@@ -564,15 +616,29 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: W
                   ) : (
                     tasks.map((task: any) => (
                       <li key={task.id} className="task-item">
-                        <span className={`task-status ${task.status.toLowerCase().replace('_', '-')}`}>
+                        <button 
+                          className={`task-checkbox ${task.status === 'DONE' ? 'checked' : ''}`}
+                          onClick={() => handleToggleTaskStatus(task)}
+                          title={task.status === 'DONE' ? 'Mark as incomplete' : 'Mark as complete'}
+                        >
+                          {task.status === 'DONE' && '✓'}
+                        </button>
+                        <span className={`task-status-badge ${task.status.toLowerCase().replace('_', '-')}`}>
                           {task.status.replace('_', ' ')}
                         </span>
                         <span className="task-title">{task.title}</span>
-                        {task.assignee && (
-                          <span className="task-assignee">
-                            {task.assignee.firstName} {task.assignee.lastName}
-                          </span>
-                        )}
+                        <span className="task-assignee">
+                          {task.assignee 
+                            ? `${task.assignee.firstName} ${task.assignee.lastName}`
+                            : <button className="text-link small" onClick={() => handleAssignTask(task)}>Assign</button>
+                          }
+                        </span>
+                        <button className="task-action" onClick={() => handleEditTask(task)} title="Edit">
+                          ✏️
+                        </button>
+                        <button className="task-action danger" onClick={() => handleDeleteTask(task.id)} title="Delete">
+                          🗑️
+                        </button>
                       </li>
                     ))
                   )}

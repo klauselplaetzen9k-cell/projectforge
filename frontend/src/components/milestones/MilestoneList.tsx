@@ -273,25 +273,29 @@ function MilestoneModal({ projectId, milestone, onClose, onSuccess }: MilestoneM
     setError(null);
 
     try {
-      if (isEditing) {
+      if (isEditing && milestone) {
         await http.put(`/milestones/${milestone.id}`, {
           name: formData.name,
           description: formData.description,
-          dueDate: formData.dueDate, // Send as YYYY-MM-DD string
+          dueDate: formData.dueDate,
         });
       } else {
         await http.post('/milestones', {
           name: formData.name,
           description: formData.description,
-          dueDate: formData.dueDate, // Send as YYYY-MM-DD string
+          dueDate: formData.dueDate,
           projectId,
         });
       }
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save milestone');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to save milestone';
+      console.error('Milestone save error:', err);
+      setError(errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
     }
   };
 

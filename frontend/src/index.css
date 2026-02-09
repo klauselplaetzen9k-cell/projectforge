@@ -2357,6 +2357,60 @@ input, textarea, select {
   color: var(--color-text-secondary);
 }
 
+.task-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: white;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.task-checkbox:hover {
+  border-color: var(--color-primary);
+}
+
+.task-checkbox.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.task-action {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.task-action:hover {
+  opacity: 1;
+  background: var(--color-bg-tertiary);
+}
+
+.task-action.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.task-item .text-link.small {
+  font-size: var(--font-size-xs);
+  padding: 2px 4px;
+}
+
 .task-detail-tabs {
   display: flex;
   gap: var(--spacing-sm);
