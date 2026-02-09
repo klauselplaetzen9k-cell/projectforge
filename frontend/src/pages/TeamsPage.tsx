@@ -148,8 +148,9 @@ interface TeamCardProps {
   onUpdate: () => void;
 }
 
-function TeamCard({ team }: TeamCardProps) {
+function TeamCard({ team, onUpdate }: TeamCardProps) {
   const [showMembers, setShowMembers] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const memberCount = team.members.length;
   const projectCount = team._count.projects;
@@ -204,7 +205,21 @@ function TeamCard({ team }: TeamCardProps) {
         <button className="secondary-button" onClick={() => setShowMembers(!showMembers)}>
           {showMembers ? 'Hide Members' : 'Show Members'}
         </button>
+        <button className="primary-button" onClick={() => setShowEditModal(true)}>
+          Edit Team
+        </button>
       </div>
+
+      {showEditModal && (
+        <TeamModal
+          team={team}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            onUpdate();
+          }}
+        />
+      )}
 
       {showMembers && (
         <div className="team-members-list">
