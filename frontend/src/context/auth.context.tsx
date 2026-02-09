@@ -101,26 +101,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login
   const login = useCallback(async (email: string, password: string) => {
     const response = await api.post<AuthResponse>('/auth/login', { email, password });
-    const { user, token } = response.data;
-    localStorage.setItem('auth_token', token);
+    const { user, accessToken, refreshToken } = response.data;
+    localStorage.setItem('auth_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
     setState({
       user,
       isAuthenticated: true,
       isLoading: false,
-      token,
+      token: accessToken,
     });
   }, []);
 
   // Register
   const register = useCallback(async (data: RegisterData) => {
     const response = await api.post<AuthResponse>('/auth/register', data);
-    const { user, token } = response.data;
-    localStorage.setItem('auth_token', token);
+    const { user, accessToken, refreshToken } = response.data;
+    localStorage.setItem('auth_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
     setState({
       user,
       isAuthenticated: true,
       isLoading: false,
-      token,
+      token: accessToken,
     });
   }, []);
 
