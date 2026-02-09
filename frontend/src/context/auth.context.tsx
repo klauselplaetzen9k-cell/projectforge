@@ -20,7 +20,8 @@ export interface User {
 
 interface AuthResponse {
   user: User;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface AuthState {

@@ -69,9 +69,10 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           // Mark refresh request to prevent infinite loop
-          const refreshConfig: AxiosRequestConfig = {
+          const refreshConfig = {
+            ...originalRequest,
             _skipAuthRetry: true,
-          };
+          } as AxiosRequestConfig;
           const response = await api.post<{ accessToken: string; refreshToken: string }>(
             '/auth/refresh',
             { refreshToken },
