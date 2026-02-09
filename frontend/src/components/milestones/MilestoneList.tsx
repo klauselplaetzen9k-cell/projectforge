@@ -296,8 +296,6 @@ function MilestoneModal({ projectId, milestone, onClose, onSuccess }: MilestoneM
       setLoading(false);
     }
   };
-    }
-  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
