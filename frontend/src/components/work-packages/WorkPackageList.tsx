@@ -155,11 +155,17 @@ export default function WorkPackageList({ projectId, onSelect }: WorkPackageList
       {showCreateModal && (
         <WorkPackageModal
           projectId={projectId}
+          workPackage={detailWP || undefined}
           parentId={selectedWP?.id}
-          onClose={() => { setShowCreateModal(false); setSelectedWP(null); }}
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedWP(null);
+            setDetailWP(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
             setSelectedWP(null);
+            setDetailWP(null);
             fetchWorkPackages();
           }}
         />
@@ -256,19 +262,21 @@ function WorkPackageItem({ workPackage, onSelect }: WorkPackageItemProps) {
 
 interface WorkPackageModalProps {
   projectId: string;
+  workPackage?: WorkPackage;
   parentId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPackageModalProps) {
+function WorkPackageModal({ projectId, workPackage, parentId, onClose, onSuccess }: WorkPackageModalProps) {
+  const isEditing = !!workPackage;
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    priority: 'MEDIUM',
-    status: 'TODO',
-    startDate: '',
-    dueDate: '',
+    name: workPackage?.name || '',
+    description: workPackage?.description || '',
+    priority: workPackage?.priority || 'MEDIUM',
+    status: workPackage?.status || 'TODO',
+    startDate: workPackage?.startDate ? workPackage.startDate.split('T')[0] : '',
+    dueDate: workPackage?.dueDate ? workPackage.dueDate.split('T')[0] : '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -279,19 +287,30 @@ function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPacka
     setError(null);
 
     try {
-      await http.post('/work-packages', {
-        name: formData.name,
-        description: formData.description,
-        priority: formData.priority,
-        status: formData.status,
-        projectId,
-        parentId,
-        startDate: formData.startDate || undefined,
-        dueDate: formData.dueDate || undefined,
-      });
+      if (isEditing) {
+        await http.put(`/work-packages/${workPackage.id}`, {
+          name: formData.name,
+          description: formData.description,
+          priority: formData.priority,
+          status: formData.status,
+          startDate: formData.startDate || undefined,
+          dueDate: formData.dueDate || undefined,
+        });
+      } else {
+        await http.post('/work-packages', {
+          name: formData.name,
+          description: formData.description,
+          priority: formData.priority,
+          status: formData.status,
+          projectId,
+          parentId,
+          startDate: formData.startDate || undefined,
+          dueDate: formData.dueDate || undefined,
+        });
+      }
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create work package');
+      setError(isEditing ? 'Failed to update work package' : 'Failed to create work package');
     } finally {
       setLoading(false);
     }
@@ -301,7 +320,7 @@ function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPacka
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{parentId ? 'Add Sub-Work Package' : 'Create Work Package'}</h2>
+          <h2>{isEditing ? 'Edit Work Package' : (parentId ? 'Add Sub-Work Package' : 'Create Work Package')}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 
@@ -391,7 +410,7 @@ function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPacka
               Cancel
             </button>
             <button type="submit" className="primary-button" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Work Package'}
+              {loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Create Work Package')}
             </button>
           </div>
         </form>
@@ -408,9 +427,54 @@ interface WorkPackageDetailModalProps {
   workPackage: WorkPackage;
   onClose: () => void;
   onEdit: (wp: WorkPackage) => void;
+  onViewTasks?: (wp: WorkPackage) => void;
 }
 
-function WorkPackageDetailModal({ workPackage, onClose, onEdit }: WorkPackageDetailModalProps) {
+function WorkPackageDetailModal({ workPackage, onClose, onEdit, onViewTasks }: WorkPackageDetailModalProps) {
+  const [showTasks, setShowTasks] = useState(false);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [addingTask, setAddingTask] = useState(false);
+
+  const loadTasks = async () => {
+    if (tasks.length > 0) {
+      setShowTasks(!showTasks);
+      return;
+    }
+    
+    setLoadingTasks(true);
+    setShowTasks(true);
+    try {
+      const { tasks: data } = await http.get(`/tasks?workPackageId=${workPackage.id}`);
+      setTasks(data || []);
+    } catch (err) {
+      console.error('Failed to load tasks:', err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+    
+    setAddingTask(true);
+    try {
+      await http.post('/tasks', {
+        title: newTaskTitle,
+        workPackageId: workPackage.id,
+        status: 'TODO',
+      });
+      setNewTaskTitle('');
+      loadTasks();
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    } finally {
+      setAddingTask(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal large" onClick={(e) => e.stopPropagation()}>
@@ -473,6 +537,57 @@ function WorkPackageDetailModal({ workPackage, onClose, onEdit }: WorkPackageDet
                 <span className="detail-label">Parent</span>
                 <span className="detail-value">{workPackage.parent.name}</span>
               </div>
+            )}
+          </div>
+
+          {/* Tasks Section */}
+          <div className="detail-section">
+            <div className="section-header">
+              <h4>Tasks</h4>
+              <button 
+                className="text-link" 
+                onClick={loadTasks}
+                disabled={loadingTasks}
+              >
+                {loadingTasks ? 'Loading...' : (showTasks ? 'Hide Tasks' : 'Show Tasks')}
+              </button>
+            </div>
+            
+            {showTasks && (
+              <>
+                <ul className="task-list">
+                  {tasks.length === 0 ? (
+                    <li className="empty-task">No tasks yet</li>
+                  ) : (
+                    tasks.map((task: any) => (
+                      <li key={task.id} className="task-item">
+                        <span className={`task-status ${task.status.toLowerCase().replace('_', '-')}`}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                        <span className="task-title">{task.title}</span>
+                        {task.assignee && (
+                          <span className="task-assignee">
+                            {task.assignee.firstName} {task.assignee.lastName}
+                          </span>
+                        )}
+                      </li>
+                    ))
+                  )}
+                </ul>
+                
+                <form onSubmit={handleAddTask} className="add-task-form">
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Add a new task..."
+                    className="task-input"
+                  />
+                  <button type="submit" className="primary-button" disabled={addingTask || !newTaskTitle.trim()}>
+                    {addingTask ? '...' : 'Add'}
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>

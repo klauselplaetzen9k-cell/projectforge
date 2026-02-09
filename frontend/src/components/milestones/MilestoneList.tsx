@@ -141,9 +141,14 @@ export default function MilestoneList({ projectId, onSelect }: MilestoneListProp
       {showCreateModal && (
         <MilestoneModal
           projectId={projectId}
-          onClose={() => setShowCreateModal(false)}
+          milestone={selectedMilestone || undefined}
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedMilestone(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setSelectedMilestone(null);
             fetchMilestones();
           }}
         />

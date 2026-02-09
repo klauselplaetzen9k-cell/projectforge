@@ -255,6 +255,7 @@ function TeamModal({ team, onClose, onSuccess }: TeamModalProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,9 +276,25 @@ function TeamModal({ team, onClose, onSuccess }: TeamModalProps) {
     }
   };
 
+  const handleRemoveMember = async (userId: string) => {
+    if (!team) return;
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    
+    setRemovingMember(userId);
+    try {
+      await http.delete(`/teams/${team.id}/members/${userId}`);
+      onSuccess();
+    } catch (err) {
+      console.error('Failed to remove member:', err);
+      alert('Failed to remove member');
+    } finally {
+      setRemovingMember(null);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEditing ? 'Edit Team' : 'Create Team'}</h2>
           <button className="close-button" onClick={onClose}>×</button>
@@ -309,6 +326,49 @@ function TeamModal({ team, onClose, onSuccess }: TeamModalProps) {
                 rows={3}
               />
             </div>
+
+            {isEditing && team && team.members.length > 0 && (
+              <div className="form-section">
+                <h4>Team Members</h4>
+                <div className="team-members-list">
+                  <ul>
+                    {team.members.map((member) => (
+                      <li key={member.user.id} className="member-row">
+                        <div className="member-info">
+                          <div className="member-avatar small">
+                            {member.user.avatarUrl ? (
+                              <img src={member.user.avatarUrl} alt={member.user.firstName} />
+                            ) : (
+                              <span>{member.user.firstName[0]}{member.user.lastName[0]}</span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="member-name">{member.user.firstName} {member.user.lastName}</span>
+                            <span className="member-email">{member.user.email}</span>
+                          </div>
+                        </div>
+                        <div className="member-actions">
+                          <span className={`member-role role-${member.role.toLowerCase()}`}>
+                            {member.role}
+                          </span>
+                          {member.role !== 'OWNER' && (
+                            <button
+                              type="button"
+                              className="icon-button danger"
+                              onClick={() => handleRemoveMember(member.user.id)}
+                              disabled={removingMember === member.user.id}
+                              title="Remove member"
+                            >
+                              {removingMember === member.user.id ? '...' : '×'}
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">
