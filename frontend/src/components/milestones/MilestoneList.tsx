@@ -35,6 +35,8 @@ export default function MilestoneList({ projectId, onSelect }: MilestoneListProp
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
 
   useEffect(() => {
@@ -50,6 +52,11 @@ export default function MilestoneList({ projectId, onSelect }: MilestoneListProp
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectMilestone = (milestone: Milestone) => {
+    setSelectedMilestone(milestone);
+    setShowDetailModal(true);
   };
 
   const filteredMilestones = milestones.filter(m => {
@@ -138,6 +145,21 @@ export default function MilestoneList({ projectId, onSelect }: MilestoneListProp
           onSuccess={() => {
             setShowCreateModal(false);
             fetchMilestones();
+          }}
+        />
+      )}
+
+      {showDetailModal && selectedMilestone && (
+        <MilestoneDetailModal
+          milestone={selectedMilestone}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedMilestone(null);
+          }}
+          onEdit={(m) => {
+            setShowDetailModal(false);
+            setSelectedMilestone(m);
+            setShowCreateModal(true);
           }}
         />
       )}
@@ -324,6 +346,85 @@ function MilestoneModal({ projectId, milestone, onClose, onSuccess }: MilestoneM
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Milestone Detail Modal
+// ============================================================================
+
+interface MilestoneDetailModalProps {
+  milestone: Milestone;
+  onClose: () => void;
+  onEdit: (milestone: Milestone) => void;
+  onDelete?: (id: string) => void;
+}
+
+function MilestoneDetailModal({ milestone, onClose, onEdit, onDelete }: MilestoneDetailModalProps) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal large" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{milestone.name}</h2>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          {milestone.description && (
+            <div className="detail-section">
+              <h4>Description</h4>
+              <p>{milestone.description}</p>
+            </div>
+          )}
+          
+          <div className="detail-grid">
+            <div className="detail-item">
+              <span className="detail-label">Due Date</span>
+              <span className="detail-value">
+                {new Date(milestone.dueDate).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Status</span>
+              <span className={`status-badge ${milestone.completed ? 'completed' : 'active'}`}>
+                {milestone.completed ? 'Completed' : 'Active'}
+              </span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Progress</span>
+              <span className="detail-value">{milestone.progress}%</span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Tasks</span>
+              <span className="detail-value">{milestone.completedTasks}/{milestone._count.tasks}</span>
+            </div>
+          </div>
+          
+          {milestone.workPackage && (
+            <div className="detail-section">
+              <h4>Work Package</h4>
+              <p>{milestone.workPackage.name}</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="modal-footer">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Close
+          </button>
+          <button type="button" className="primary-button" onClick={() => onEdit(milestone)}>
+            Edit
+          </button>
+        </div>
       </div>
     </div>
   );

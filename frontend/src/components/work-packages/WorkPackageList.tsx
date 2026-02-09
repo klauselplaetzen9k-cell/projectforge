@@ -62,7 +62,9 @@ export default function WorkPackageList({ projectId, onSelect }: WorkPackageList
   const [workPackages, setWorkPackages] = useState<WorkPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedWP, setSelectedWP] = useState<WorkPackage | null>(null);
+  const [detailWP, setDetailWP] = useState<WorkPackage | null>(null);
   const [filter, setFilter] = useState<string>('');
 
   useEffect(() => {
@@ -78,6 +80,12 @@ export default function WorkPackageList({ projectId, onSelect }: WorkPackageList
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectWP = (wp: WorkPackage) => {
+    onSelect?.(wp);
+    setDetailWP(wp);
+    setShowDetailModal(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -137,7 +145,7 @@ export default function WorkPackageList({ projectId, onSelect }: WorkPackageList
             <WorkPackageItem
               key={wp.id}
               workPackage={wp}
-              onSelect={onSelect}
+              onSelect={handleSelectWP}
               onUpdate={fetchWorkPackages}
             />
           ))}
@@ -153,6 +161,21 @@ export default function WorkPackageList({ projectId, onSelect }: WorkPackageList
             setShowCreateModal(false);
             setSelectedWP(null);
             fetchWorkPackages();
+          }}
+        />
+      )}
+
+      {showDetailModal && detailWP && (
+        <WorkPackageDetailModal
+          workPackage={detailWP}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailWP(null);
+          }}
+          onEdit={(wp) => {
+            setShowDetailModal(false);
+            setSelectedWP(wp);
+            setShowCreateModal(true);
           }}
         />
       )}
@@ -257,7 +280,10 @@ function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPacka
 
     try {
       await http.post('/work-packages', {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
+        priority: formData.priority,
+        status: formData.status,
         projectId,
         parentId,
         startDate: formData.startDate || undefined,
@@ -369,6 +395,96 @@ function WorkPackageModal({ projectId, parentId, onClose, onSuccess }: WorkPacka
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Work Package Detail Modal
+// ============================================================================
+
+interface WorkPackageDetailModalProps {
+  workPackage: WorkPackage;
+  onClose: () => void;
+  onEdit: (wp: WorkPackage) => void;
+}
+
+function WorkPackageDetailModal({ workPackage, onClose, onEdit }: WorkPackageDetailModalProps) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal large" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{workPackage.name}</h2>
+          <button className="close-button" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="modal-body">
+          {workPackage.description && (
+            <div className="detail-section">
+              <h4>Description</h4>
+              <p>{workPackage.description}</p>
+            </div>
+          )}
+          
+          <div className="detail-grid">
+            <div className="detail-item">
+              <span className="detail-label">Status</span>
+              <span className={`wp-status ${workPackage.status.toLowerCase().replace('_', '-')}`}>
+                {workPackage.status.replace('_', ' ')}
+              </span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Priority</span>
+              <span className="detail-value">{workPackage.priority}</span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Progress</span>
+              <span className="detail-value">{workPackage.progress}%</span>
+            </div>
+            
+            <div className="detail-item">
+              <span className="detail-label">Tasks</span>
+              <span className="detail-value">{workPackage._count.tasks} total</span>
+            </div>
+            
+            {workPackage.startDate && (
+              <div className="detail-item">
+                <span className="detail-label">Start Date</span>
+                <span className="detail-value">
+                  {new Date(workPackage.startDate).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+            
+            {workPackage.dueDate && (
+              <div className="detail-item">
+                <span className="detail-label">Due Date</span>
+                <span className="detail-value">
+                  {new Date(workPackage.dueDate).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+            
+            {workPackage.parent && (
+              <div className="detail-item">
+                <span className="detail-label">Parent</span>
+                <span className="detail-value">{workPackage.parent.name}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="modal-footer">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Close
+          </button>
+          <button type="button" className="primary-button" onClick={() => onEdit(workPackage)}>
+            Edit
+          </button>
+        </div>
       </div>
     </div>
   );

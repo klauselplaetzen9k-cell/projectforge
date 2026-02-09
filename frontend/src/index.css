@@ -2359,9 +2359,26 @@ input, textarea, select {
   margin-bottom: var(--spacing-sm);
 }
 
-.details-tab .description {
+/* Modal detail sections */
+.detail-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.detail-section h4 {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-section p {
   font-size: var(--font-size-sm);
   line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.detail-grid {
   color: var(--color-text-primary);
   white-space: pre-wrap;
   padding: var(--spacing-md);
