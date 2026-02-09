@@ -48,6 +48,7 @@ api.interceptors.request.use(
 
 interface RetryConfig extends AxiosRequestConfig {
   _retry?: boolean;
+  _skipAuthRetry?: boolean;
 }
 
 api.interceptors.response.use(
@@ -55,26 +56,45 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryConfig;
 
-    // Handle 401 errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Handle 401 errors - only retry if not already retried and not the refresh endpoint
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest._skipAuthRetry
+    ) {
       originalRequest._retry = true;
 
       // Try to refresh token
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const response = await api.post<{ token: string }>('/auth/refresh', { refreshToken });
-          const { token } = response.data;
-          localStorage.setItem('auth_token', token);
+          // Mark refresh request to prevent infinite loop
+          const refreshConfig: AxiosRequestConfig = {
+            _skipAuthRetry: true,
+          };
+          const response = await api.post<{ accessToken: string; refreshToken: string }>(
+            '/auth/refresh',
+            { refreshToken },
+            refreshConfig
+          );
+          const { accessToken, refreshToken: newRefreshToken } = response.data;
+          
+          // Update both tokens
+          localStorage.setItem('auth_token', accessToken);
+          localStorage.setItem('refresh_token', newRefreshToken);
+          
+          // Update original request headers
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           }
+          
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed, logout
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/login';
+          return Promise.reject(refreshError);
         }
       } else {
         // No refresh token, logout
