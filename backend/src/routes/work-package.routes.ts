@@ -38,11 +38,26 @@ router.post('/', authenticate, async (req: Request, res) => {
     parentId: z.string().optional(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'ARCHIVED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-    startDate: z.string().datetime().optional(),
-    dueDate: z.string().datetime().optional(),
+    startDate: z.string().optional(),
+    dueDate: z.string().optional(),
   });
 
   const data = schema.parse(req.body);
+
+  // Parse dates if provided
+  let startDate, dueDate;
+  if (data.startDate) {
+    startDate = new Date(data.startDate);
+    if (isNaN(startDate.getTime())) {
+      startDate = undefined;
+    }
+  }
+  if (data.dueDate) {
+    dueDate = new Date(data.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      dueDate = undefined;
+    }
+  }
 
   // Get next sort order
   const lastWP = await prisma.workPackage.findFirst({
@@ -59,8 +74,8 @@ router.post('/', authenticate, async (req: Request, res) => {
       sortOrder: (lastWP?.sortOrder || 0) + 1,
       status: data.status || 'TODO',
       priority: data.priority || 'MEDIUM',
-      ...(data.startDate && { startDate: new Date(data.startDate) }),
-      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
+      ...(startDate && { startDate }),
+      ...(dueDate && { dueDate }),
     },
     include: {
       parent: { select: { id: true, name: true } },
@@ -114,19 +129,39 @@ router.put('/:id', authenticate, async (req: Request, res) => {
     status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'ARCHIVED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     parentId: z.string().optional().nullable(),
-    startDate: z.string().datetime().optional().nullable(),
-    dueDate: z.string().datetime().optional().nullable(),
+    startDate: z.string().optional().nullable(),
+    dueDate: z.string().optional().nullable(),
     sortOrder: z.number().optional(),
   });
 
   const data = schema.parse(req.body);
 
+  // Parse dates if provided
+  let startDate, dueDate;
+  if (data.startDate) {
+    startDate = new Date(data.startDate);
+    if (isNaN(startDate.getTime())) {
+      startDate = undefined;
+    }
+  }
+  if (data.dueDate) {
+    dueDate = new Date(data.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      dueDate = undefined;
+    }
+  }
+
   const workPackage = await prisma.workPackage.update({
     where: { id: req.params.id },
     data: {
-      ...data,
-      ...(data.startDate && { startDate: new Date(data.startDate) }),
-      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
+      name: data.name,
+      description: data.description,
+      status: data.status,
+      priority: data.priority,
+      parentId: data.parentId,
+      sortOrder: data.sortOrder,
+      ...(startDate && { startDate }),
+      ...(dueDate && { dueDate }),
     },
     include: {
       parent: { select: { id: true, name: true } },

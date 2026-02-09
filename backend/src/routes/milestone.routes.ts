@@ -38,15 +38,24 @@ router.post('/', authenticate, asyncHandler(async (req: Request, res) => {
     description: z.string().optional(),
     projectId: z.string(),
     workPackageId: z.string().optional(),
-    dueDate: z.string().datetime(), // Accept ISO 8601 datetime string
+    dueDate: z.string(), // Accept YYYY-MM-DD or ISO date string
   });
 
   const data = schema.parse(req.body);
 
+  // Parse date - handle both YYYY-MM-DD and ISO format
+  const dueDate = new Date(data.dueDate);
+  if (isNaN(dueDate.getTime())) {
+    throw new AppError('Invalid due date format', 400);
+  }
+
   const milestone = await prisma.milestone.create({
     data: {
-      ...data,
-      dueDate: new Date(data.dueDate),
+      name: data.name,
+      description: data.description,
+      projectId: data.projectId,
+      workPackageId: data.workPackageId,
+      dueDate,
     },
     include: {
       workPackage: { select: { id: true, name: true } },
@@ -90,16 +99,25 @@ router.put('/:id', authenticate, asyncHandler(async (req: Request, res) => {
   const schema = z.object({
     name: z.string().min(1).max(200).optional(),
     description: z.string().optional().nullable(),
-    dueDate: z.string().datetime().optional(),
+    dueDate: z.string().optional(), // Accept YYYY-MM-DD or ISO date string
     completed: z.boolean().optional(),
   });
 
   const data = schema.parse(req.body);
 
+  // Parse date if provided
+  let dueDate;
+  if (data.dueDate) {
+    dueDate = new Date(data.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      throw new AppError('Invalid due date format', 400);
+    }
+  }
+
   const milestone = await prisma.milestone.update({
     where: { id: req.params.id },
     data: {
-      ...(data.dueDate && { dueDate: new Date(data.dueDate) }),
+      ...(dueDate && { dueDate }),
       ...(data.completed && { completedAt: new Date() }),
       ...(!data.completed && { completedAt: null }),
       ...(data.name && { name: data.name }),
